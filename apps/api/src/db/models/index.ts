@@ -73,8 +73,14 @@ Booking.hasMany(PaymentTransaction, {
   foreignKey: 'bookingId',
   as: 'paymentTransactions',
 });
-PaymentTransaction.hasMany(PaymentStateEvent, { foreignKey: 'paymentTransactionId', as: 'stateEvents' });
-PaymentStateEvent.belongsTo(PaymentTransaction, { foreignKey: 'paymentTransactionId', as: 'paymentTransaction' });
+PaymentTransaction.hasMany(PaymentStateEvent, {
+  foreignKey: 'paymentTransactionId',
+  as: 'stateEvents',
+});
+PaymentStateEvent.belongsTo(PaymentTransaction, {
+  foreignKey: 'paymentTransactionId',
+  as: 'paymentTransaction',
+});
 PaymentTransaction.belongsTo(Booking, {
   foreignKey: 'bookingId',
   as: 'booking',

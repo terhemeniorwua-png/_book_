@@ -4,7 +4,7 @@ import express from 'express';
 import Joi from 'joi';
 import { app, createApp, errorHandler } from './app.js';
 import { validateRequest } from './middleware/validate-request.js';
-import { validateEnvironment } from './config/env.js';
+import { env, validateEnvironment } from './config/env.js';
 
 describe('API foundation', () => {
   it('exposes a health check', async () => {
@@ -142,5 +142,83 @@ describe('API foundation', () => {
     expect(() => validateEnvironment({})).toThrow(
       'Invalid environment configuration: DATABASE_URL',
     );
+  });
+
+  it('rejects live Paystack keys outside production and requires live keys in production', () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'development',
+        DATABASE_URL: 'postgres://user:pass@localhost/db',
+        PAYSTACK_SECRET_KEY: 'sk_live_private',
+        PAYSTACK_PUBLIC_KEY: 'pk_live_public',
+      }),
+    ).toThrow('Paystack test keys required for development');
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgres://user:pass@localhost/db',
+        PAYSTACK_SECRET_KEY: 'sk_test_private',
+        PAYSTACK_PUBLIC_KEY: 'pk_test_public',
+        PAYSTACK_CALLBACK_URL: 'https://site.example/booking/payment/callback',
+        PAYSTACK_WEBHOOK_URL:
+          'https://api.example/api/v1/payments/paystack/webhook',
+      }),
+    ).toThrow('Paystack live keys required for production');
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgres://user:pass@localhost/db',
+      }),
+    ).toThrow(
+      'PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL',
+    );
+  });
+
+  it('applies a stricter payment-initialization limiter', async () => {
+    const limitedApp = createApp({
+      ...validateEnvironment({
+        DATABASE_URL: 'postgres://user:pass@localhost/db',
+        RATE_LIMIT_SENSITIVE_MAX: '1',
+      }),
+      NODE_ENV: 'test',
+    });
+    const path = '/api/v1/payments/bookings/AB-0123456789ABCD/initialize';
+    const first = await request(limitedApp)
+      .post(path)
+      .set('Idempotency-Key', 'payment-init-key-123456')
+      .send({});
+    const second = await request(limitedApp)
+      .post(path)
+      .set('Idempotency-Key', 'payment-init-key-123456')
+      .send({});
+    expect(first.status).not.toBe(429);
+    expect(second.status).toBe(429);
+  });
+
+  it('validates payment initialization input and parses only webhook raw bytes', async () => {
+    const invalid = await request(app)
+      .post('/api/v1/payments/bookings/AB-0123456789ABCD/initialize')
+      .set('Idempotency-Key', 'payment-init-key-123456')
+      .set('Authorization', `Bearer ${'a'.repeat(64)}`)
+      .send({ amount: 1 });
+    expect(invalid.status).toBe(400);
+
+    const previousSecret = env.PAYSTACK_SECRET_KEY;
+    env.PAYSTACK_SECRET_KEY = 'sk_test_webhook_test';
+    try {
+      const invalidSignature = await request(app)
+        .post('/api/v1/payments/paystack/webhook')
+        .set('Content-Type', 'application/json')
+        .set('x-paystack-signature', '0'.repeat(128))
+        .send(Buffer.from('{"event":"charge.success"}'));
+      expect(invalidSignature.status).toBe(401);
+      const tooLarge = await request(app)
+        .post('/api/v1/payments/paystack/webhook')
+        .set('Content-Type', 'application/json')
+        .send(Buffer.from(' '.repeat(110_000)));
+      expect(tooLarge.status).toBe(413);
+    } finally {
+      env.PAYSTACK_SECRET_KEY = previousSecret;
+    }
   });
 });

@@ -31,7 +31,16 @@ const schema = Joi.object({
   TEST_DATABASE_URL: Joi.string()
     .uri({ scheme: ['postgres', 'postgresql'] })
     .optional(),
-  DB_SSL: Joi.boolean().default(false),
+  DB_SSL: Joi.any()
+    .default(false)
+    .custom((value, helpers) => {
+      if (typeof value === 'boolean') return value;
+      const normalized = String(value).trim().toLowerCase();
+      if (['true', '1', 'yes', 'on', 'require'].includes(normalized))
+        return true;
+      if (['false', '0', 'no', 'off', ''].includes(normalized)) return false;
+      return helpers.error('any.invalid');
+    }),
   DB_POOL_MAX: Joi.number().integer().min(1).max(50).default(10),
   REDIS_URL: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
@@ -46,12 +55,28 @@ const schema = Joi.object({
   RATE_LIMIT_SENSITIVE_MAX: Joi.number().integer().min(1).default(10),
   RATE_LIMIT_APARTMENT_MAX: Joi.number().integer().min(1).default(120),
   BOOKING_TIME_ZONE: Joi.string().min(1).max(80).default('Africa/Lagos'),
-  PAYSTACK_SECRET_KEY: Joi.string().empty('').pattern(/^sk_(test|live)_[A-Za-z0-9]+$/).optional(),
-  PAYSTACK_PUBLIC_KEY: Joi.string().empty('').pattern(/^pk_(test|live)_[A-Za-z0-9]+$/).optional(),
+  PAYSTACK_SECRET_KEY: Joi.string()
+    .empty('')
+    .pattern(/^sk_(test|live)_[A-Za-z0-9_-]+$/)
+    .optional(),
+  PAYSTACK_PUBLIC_KEY: Joi.string()
+    .empty('')
+    .pattern(/^pk_(test|live)_[A-Za-z0-9_-]+$/)
+    .optional(),
   PAYSTACK_CURRENCY: Joi.string().valid('NGN').default('NGN'),
-  PAYSTACK_CALLBACK_URL: Joi.string().empty('').uri({ scheme: ['http', 'https'] }).optional(),
-  PAYSTACK_WEBHOOK_URL: Joi.string().empty('').uri({ scheme: ['http', 'https'] }).optional(),
-  PAYMENT_RECONCILIATION_AGE_MINUTES: Joi.number().integer().min(5).max(1440).default(30),
+  PAYSTACK_CALLBACK_URL: Joi.string()
+    .empty('')
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
+  PAYSTACK_WEBHOOK_URL: Joi.string()
+    .empty('')
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
+  PAYMENT_RECONCILIATION_AGE_MINUTES: Joi.number()
+    .integer()
+    .min(5)
+    .max(1440)
+    .default(30),
   S3_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .optional(),
@@ -106,18 +131,50 @@ export function validateEnvironment(
     throw new Error(
       'Invalid environment configuration: S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY',
     );
-  const hasPaystackKey = Boolean(value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY);
-  if (hasPaystackKey && !(value.PAYSTACK_SECRET_KEY && value.PAYSTACK_PUBLIC_KEY))
-    throw new Error('Invalid environment configuration: PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY');
+  const hasPaystackKey = Boolean(
+    value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY,
+  );
   if (hasPaystackKey) {
     const mode = value.NODE_ENV === 'production' ? 'live' : 'test';
-    if (!String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`) || !String(value.PAYSTACK_PUBLIC_KEY).startsWith(`pk_${mode}_`))
-      throw new Error(`Invalid environment configuration: Paystack ${mode} keys required for ${value.NODE_ENV}`);
+    if (
+      (value.PAYSTACK_SECRET_KEY &&
+        !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`)) ||
+      (value.PAYSTACK_PUBLIC_KEY &&
+        !String(value.PAYSTACK_PUBLIC_KEY).startsWith(`pk_${mode}_`))
+    )
+      throw new Error(
+        `Invalid environment configuration: Paystack ${mode} keys required for ${value.NODE_ENV}`,
+      );
   }
-  if (value.NODE_ENV === 'production' && (!hasPaystackKey || !value.PAYSTACK_CALLBACK_URL || !value.PAYSTACK_WEBHOOK_URL))
-    throw new Error('Invalid environment configuration: PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL');
-  if (value.NODE_ENV === 'production' && [value.PAYSTACK_CALLBACK_URL, value.PAYSTACK_WEBHOOK_URL].some((url) => url && !url.startsWith('https://')))
-    throw new Error('Invalid environment configuration: Paystack callback and webhook URLs must use HTTPS');
+  if (
+    value.NODE_ENV === 'production' &&
+    (!(value.PAYSTACK_SECRET_KEY && value.PAYSTACK_PUBLIC_KEY) ||
+      !value.PAYSTACK_CALLBACK_URL ||
+      !value.PAYSTACK_WEBHOOK_URL)
+  )
+    throw new Error(
+      'Invalid environment configuration: PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL',
+    );
+  if (
+    value.NODE_ENV === 'production' &&
+    [value.PAYSTACK_CALLBACK_URL, value.PAYSTACK_WEBHOOK_URL].some(
+      (url) => url && !url.startsWith('https://'),
+    )
+  )
+    throw new Error(
+      'Invalid environment configuration: Paystack callback and webhook URLs must use HTTPS',
+    );
+  if (
+    (value.PAYSTACK_CALLBACK_URL &&
+      new URL(value.PAYSTACK_CALLBACK_URL).pathname !==
+        '/booking/payment/callback') ||
+    (value.PAYSTACK_WEBHOOK_URL &&
+      new URL(value.PAYSTACK_WEBHOOK_URL).pathname !==
+        '/api/v1/payments/paystack/webhook')
+  )
+    throw new Error(
+      'Invalid environment configuration: PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL',
+    );
   try {
     new Intl.DateTimeFormat('en-CA', { timeZone: value.BOOKING_TIME_ZONE });
   } catch {

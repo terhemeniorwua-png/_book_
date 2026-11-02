@@ -3,6 +3,8 @@ import {
   guestInformationSchema,
   parseApartmentAvailability,
   parseApartmentQuote,
+  parsePaymentInitialization,
+  parsePaymentVerification,
   staySelectionSchema,
 } from './booking';
 
@@ -110,5 +112,28 @@ describe('booking forms', () => {
       totalAmount: '400.00',
     });
     expect(quote.success).toBe(true);
+  });
+
+  it('accepts only Paystack checkout URLs and typed payment verification states', () => {
+    expect(
+      parsePaymentInitialization({
+        authorizationUrl: 'https://checkout.paystack.com/abc123',
+        reference: 'staywell_1234567890',
+        currency: 'NGN',
+      }).success,
+    ).toBe(true);
+    expect(
+      parsePaymentInitialization({
+        authorizationUrl: 'https://attacker.example/pay',
+        reference: 'staywell_1234567890',
+        currency: 'NGN',
+      }).success,
+    ).toBe(false);
+    expect(
+      parsePaymentVerification({
+        status: 'succeeded',
+        bookingStatus: 'confirmed',
+      }).success,
+    ).toBe(true);
   });
 });

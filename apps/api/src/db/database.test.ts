@@ -50,6 +50,8 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     expect(models.Apartment.associations.amenities).toBeDefined();
     expect(models.Booking.associations.guest).toBeDefined();
     expect(models.Booking.associations.paymentTransactions).toBeDefined();
+    expect(models.PaymentTransaction.associations.stateEvents).toBeDefined();
+    expect(models.PaymentWebhookEvent).toBeDefined();
     await expect(models.Apartment.build({}).validate()).rejects.toThrow();
 
     const indexes = (await db
@@ -57,6 +59,34 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
       .showIndex('apartments', { transaction })) as Array<{ name: string }>;
     expect(
       indexes.some((index) => index.name === 'apartments_public_status_idx'),
+    ).toBe(true);
+    const paymentIndexes = (await db
+      .getQueryInterface()
+      .showIndex('payment_transactions', { transaction })) as Array<{
+      name: string;
+    }>;
+    expect(
+      paymentIndexes.some(
+        (index) =>
+          index.name ===
+          'payment_transactions_one_active_attempt_per_booking_uq',
+      ),
+    ).toBe(true);
+    const webhookIndexes = (await db
+      .getQueryInterface()
+      .showIndex('payment_webhook_events', { transaction })) as Array<{
+      name: string;
+      unique?: boolean;
+      fields?: Array<{ attribute: string }>;
+    }>;
+    expect(
+      webhookIndexes.some(
+        (index) =>
+          index.unique &&
+          index.fields?.some(
+            (field: { attribute: string }) => field.attribute === 'event_hash',
+          ),
+      ),
     ).toBe(true);
     const slug = `unique-${crypto.randomUUID()}`;
     const apartmentData = {

@@ -11,6 +11,7 @@ import {
   apartmentCatalogLimiter,
   bookingCreationLimiter,
   paymentInitializationLimiter,
+  paymentVerificationLimiter,
   setRateLimitStoreFactory,
   type RateLimitStoreFactory,
 } from './middleware/rate-limits.js';
@@ -30,23 +31,32 @@ const safeBookingErrorMessages: Record<string, string> = {
   INVALID_BOOKING_TOKEN: 'A valid booking attempt token is required.',
   BOOKING_ACCESS_REQUIRED: 'A valid booking access token is required.',
   BOOKING_NOT_FOUND: 'Booking could not be found.',
-  BOOKING_HOLD_EXPIRED: 'This reservation hold has expired. Start again to check availability.',
+  BOOKING_HOLD_EXPIRED:
+    'This reservation hold has expired. Start again to check availability.',
   BOOKING_NOT_PAYABLE: 'This reservation is not eligible for payment.',
   PAYMENT_NOT_FOUND: 'Payment could not be found.',
-  PAYMENT_MISMATCH: 'Payment could not be verified for this reservation. Contact support.',
+  PAYMENT_MISMATCH:
+    'Payment could not be verified for this reservation. Contact support.',
   INVALID_IDEMPOTENCY_KEY: 'A valid payment attempt key is required.',
-  IDEMPOTENCY_CONFLICT: 'This payment attempt key has already been used.',
-  PAYMENT_ATTEMPT_CONFLICT: 'A payment attempt is already being prepared. Retry shortly.',
-  PAYMENT_INITIALIZATION_PENDING: 'This payment attempt is still being prepared. Retry shortly.',
-  UNSUPPORTED_CURRENCY: 'This booking currency is not supported for online payment.',
+  PAYMENT_IDEMPOTENCY_CONFLICT:
+    'This payment attempt key has already been used.',
+  PAYMENT_ATTEMPT_CONFLICT:
+    'A payment attempt is already being prepared. Retry shortly.',
+  PAYMENT_INITIALIZATION_PENDING:
+    'This payment attempt is still being prepared. Retry shortly.',
+  UNSUPPORTED_CURRENCY:
+    'This booking currency is not supported for online payment.',
   INVALID_BOOKING_AMOUNT: 'This booking cannot be paid at this time.',
   PAYMENTS_NOT_CONFIGURED: 'Payments are not available right now.',
-  PAYMENT_PROVIDER_UNAVAILABLE: 'Payment service is temporarily unavailable. Try again shortly.',
+  PAYMENT_PROVIDER_UNAVAILABLE:
+    'Payment service is temporarily unavailable. Try again shortly.',
   PAYMENT_PROVIDER_REJECTED: 'Payment service could not process this request.',
-  INVALID_PROVIDER_RESPONSE: 'Payment service returned an invalid checkout response.',
+  INVALID_PROVIDER_RESPONSE:
+    'Payment service returned an invalid checkout response.',
   INVALID_WEBHOOK_SIGNATURE: 'Webhook signature is invalid.',
   INVALID_WEBHOOK: 'Webhook payload is invalid.',
-  PAYMENT_NOT_VERIFIED: 'Webhook transaction could not be independently verified.',
+  PAYMENT_NOT_VERIFIED:
+    'Webhook transaction could not be independently verified.',
 };
 
 export const errorHandler: ErrorRequestHandler = (
@@ -205,7 +215,11 @@ export function createApp(
   );
   application.use(
     '/api/v1/payments/bookings',
-    paymentInitializationLimiter(configuration),
+    paymentInitializationLimiter(configuration, rateLimitStoreFactory),
+  );
+  application.use(
+    '/api/v1/payments/verify',
+    paymentVerificationLimiter(configuration, rateLimitStoreFactory),
   );
   application.get('/health', (_request, response) =>
     response.json({ status: 'ok' }),

@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getApiBaseUrl } from '@/lib/apartments';
-import { createSecretHex, parseBookingCheckout, parsePaymentInitialization, type BookingCheckout } from '@/lib/booking';
+import {
+  createSecretHex,
+  parseBookingCheckout,
+  parsePaymentInitialization,
+  type BookingCheckout,
+} from '@/lib/booking';
 import { ApartmentPhoto } from '@/components/site/apartment-photo';
 import { BookingProgress } from './booking-progress';
 
@@ -43,32 +48,51 @@ export function CheckoutSummary({
     setPaymentLoading(true);
     setPaymentError(null);
     try {
-      const accessToken = sessionStorage.getItem(`staywell:booking-token:${bookingReference}`);
-      if (!accessToken) throw new Error('Your secure booking session has expired. Return to guest information and try again.');
+      const accessToken = sessionStorage.getItem(
+        `staywell:booking-token:${bookingReference}`,
+      );
+      if (!accessToken)
+        throw new Error(
+          'Your secure booking session has expired. Return to guest information and try again.',
+        );
       const keyStorage = `staywell:payment-key:${bookingReference}`;
       let idempotencyKey = sessionStorage.getItem(keyStorage);
       if (!idempotencyKey) {
         idempotencyKey = createSecretHex();
         sessionStorage.setItem(keyStorage, idempotencyKey);
       }
-      const response = await fetch(`${getApiBaseUrl()}/payments/bookings/${encodeURIComponent(bookingReference)}/initialize`, {
-        method: 'POST',
-        cache: 'no-store',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          authorization: `Bearer ${accessToken}`,
-          'idempotency-key': idempotencyKey,
+      const response = await fetch(
+        `${getApiBaseUrl()}/payments/bookings/${encodeURIComponent(bookingReference)}/initialize`,
+        {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+            'idempotency-key': idempotencyKey,
+          },
+          body: '{}',
         },
-        body: '{}',
-      });
+      );
       const payload: unknown = await response.json().catch(() => null);
-      const envelope = payload && typeof payload === 'object' ? (payload as { item?: unknown; error?: { message?: string } }) : {};
+      const envelope =
+        payload && typeof payload === 'object'
+          ? (payload as { item?: unknown; error?: { message?: string } })
+          : {};
       const parsed = parsePaymentInitialization(envelope.item);
-      if (!response.ok || !parsed.success) throw new Error(envelope.error?.message ?? 'Payment could not be started. Please try again.');
+      if (!response.ok || !parsed.success)
+        throw new Error(
+          envelope.error?.message ??
+            'Payment could not be started. Please try again.',
+        );
       window.location.assign(parsed.data.authorizationUrl);
     } catch (error) {
-      setPaymentError(error instanceof Error ? error.message : 'Payment could not be started. Please try again.');
+      setPaymentError(
+        error instanceof Error
+          ? error.message
+          : 'Payment could not be started. Please try again.',
+      );
       setPaymentLoading(false);
     }
   }
@@ -365,11 +389,21 @@ export function CheckoutSummary({
               disabled={paymentLoading}
               className="min-h-12 w-full rounded-full bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral disabled:cursor-wait disabled:opacity-60"
             >
-              {paymentLoading ? 'Connecting to Paystack…' : 'Continue to Paystack'}
+              {paymentLoading
+                ? 'Connecting to Paystack…'
+                : 'Continue to Paystack'}
             </button>
-            {paymentError ? <p role="alert" className="mt-3 text-center text-sm text-terracotta">{paymentError}</p> : null}
+            {paymentError ? (
+              <p
+                role="alert"
+                className="mt-3 text-center text-sm text-terracotta"
+              >
+                {paymentError}
+              </p>
+            ) : null}
             <p className="mt-3 text-center text-xs leading-5 text-muted">
-              Payment is processed securely by Paystack. Your hold remains subject to the expiry time above.
+              Payment is processed securely by Paystack. Your hold remains
+              subject to the expiry time above.
             </p>
             <Link
               href={`/booking?apartmentId=${encodeURIComponent(apartment.id)}&apartmentSlug=${encodeURIComponent(apartment.slug)}&checkIn=${item.checkIn}&checkOut=${item.checkOut}&guests=${item.guestCount}`}

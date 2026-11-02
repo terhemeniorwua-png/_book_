@@ -62,10 +62,17 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [x] Test valid/invalid forms, malformed and missing request fields, duplicate submissions, server totals, and unauthorized booking access; run lint, typechecks, tests, and builds.
 - [x] Acceptance: guests can enter their details and reach a protected checkout with the correct server total without duplicate reservations.
 
-## Phase 8 — Payments — Not started
+## Phase 8 — Payments — In progress
 
-- [ ] Integrate Paystack initialization, server-side verification, signed webhook handling, idempotency, and payment reconciliation.
-- [ ] Acceptance: secrets remain server-side; duplicate, invalid, delayed, and successful payment events are handled and tested.
+- [x] Add validated environment configuration for paired Paystack test/live keys, NGN, HTTPS production callback/webhook URLs, and reconciliation age; document purpose and source without example credentials.
+- [x] Initialize server-priced pending reservations using their protected booking access token, unique provider references, idempotency keys, the authoritative stored amount in kobo, and one-active-attempt constraints.
+- [x] Add callback verification and a responsive checkout redirect; browser parameters never mark a booking paid.
+- [x] Verify transaction reference, provider status, exact amount, currency, guest email, and test/live domain before atomically confirming a live inventory hold.
+- [x] Parse webhook payloads as bounded raw bytes, validate HMAC-SHA512, independently verify charge success, store dedupe hashes, and lock rows to handle duplicate/concurrent callback and webhook delivery.
+- [x] Track payment transition audit records, refund events, late payments, and manual-review outcomes; expose a shell-only reconciliation command that queries Paystack before changes.
+- [x] Add focused mocked Paystack, signature, configuration, raw webhook, rate-limit, and frontend response-schema tests.
+- [ ] Run migrations and reservation/payment concurrency tests against the dedicated `TEST_DATABASE_URL`, and complete a Paystack sandbox webhook/callback round trip before declaring acceptance complete.
+- [ ] Acceptance: secrets remain server-side; duplicate, invalid, delayed, refund, and successful payment events are verified against the provider and the isolated PostgreSQL integration suite passes.
 
 ## Phase 9 — Customer and administration — Not started
 

@@ -16,8 +16,8 @@
     "db:test": "RUN_DB_INTEGRATION_TESTS=true vitest run src/db/database.test.ts",
     "db:seed:apartments": "tsx src/db/seeders/run-apartment-seeder.ts up",
     "db:seed:apartments:undo": "tsx src/db/seeders/run-apartment-seeder.ts down",
-    "db:provision-admin": "tsx src/db/provision-admin.ts"
-    ,"payments:reconcile": "tsx src/db/reconcile-payments.ts"
+    "db:provision-admin": "tsx src/db/provision-admin.ts",
+    "payments:reconcile": "tsx src/db/reconcile-payments.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.922.0",

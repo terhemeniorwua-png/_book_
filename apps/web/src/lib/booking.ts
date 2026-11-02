@@ -143,7 +143,10 @@ const checkoutSchema = z.object({
 });
 
 export const paymentInitializationSchema = z.object({
-  authorizationUrl: z.string().url().refine((value) => new URL(value).hostname === 'checkout.paystack.com'),
+  authorizationUrl: z
+    .string()
+    .url()
+    .refine((value) => new URL(value).hostname === 'checkout.paystack.com'),
   reference: z.string().min(8),
   currency: z.string().length(3),
 });
