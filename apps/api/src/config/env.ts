@@ -41,6 +41,7 @@ const schema = Joi.object({
       if (['false', '0', 'no', 'off', ''].includes(normalized)) return false;
       return helpers.error('any.invalid');
     }),
+  DB_SSL_CA: Joi.string().min(1).optional(),
   DB_POOL_MAX: Joi.number().integer().min(1).max(50).default(10),
   REDIS_URL: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
@@ -92,6 +93,7 @@ export type AppEnvironment = {
   DATABASE_URL: string;
   TEST_DATABASE_URL?: string;
   DB_SSL: boolean;
+  DB_SSL_CA?: string;
   DB_POOL_MAX: number;
   REDIS_URL?: string;
   CORS_ORIGINS: string;
