@@ -20,7 +20,7 @@ export function displayPrice(value: string | number, currency: string) {
 export function ApartmentCard({ apartment }: { apartment: ApartmentSummary }) {
   const price = displayPrice(apartment.nightlyPrice, apartment.currency);
   return (
-    <article className="group overflow-hidden rounded-[1.75rem] bg-white p-3 shadow-[0_12px_40px_rgba(26,37,32,0.055)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(26,37,32,0.12)]">
+    <article className="group overflow-hidden rounded-2xl border border-[#e8e3da] bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
       <Link
         href={`/apartments/${encodeURIComponent(apartment.slug)}`}
         className="block rounded-[1.25rem] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
@@ -37,7 +37,7 @@ export function ApartmentCard({ apartment }: { apartment: ApartmentSummary }) {
         <div className="px-2 pb-1 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="font-display text-2xl leading-tight text-ink">
+              <h2 className="font-sans text-xl font-semibold leading-tight text-ink">
                 {apartment.name}
               </h2>
               <p className="mt-2 text-sm text-muted">
@@ -48,7 +48,20 @@ export function ApartmentCard({ apartment }: { apartment: ApartmentSummary }) {
               aria-hidden="true"
               className="flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/10 text-forest transition group-hover:border-forest group-hover:bg-forest group-hover:text-white"
             >
-              ↗
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="size-4"
+              >
+                <path
+                  d="M7 17 17 7M7 7h10v10"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </span>
           </div>
         </div>

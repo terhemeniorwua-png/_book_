@@ -551,7 +551,7 @@ export function StayDateSelector({
           loadingQuote ||
           !quote
         }
-        className="min-h-12 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-white hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-12 rounded-xl bg-forest px-6 py-3 text-sm font-semibold text-white hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest disabled:cursor-not-allowed disabled:opacity-50"
       >
         Continue to guest information
       </button>

@@ -18,7 +18,7 @@ export function SectionHeading({
       className={`${align === 'center' ? 'mx-auto text-center' : ''} max-w-2xl`}
     >
       <p
-        className={`mb-4 text-xs font-bold uppercase tracking-[0.2em] ${light ? 'text-lime' : 'text-terracotta'}`}
+        className={`mb-4 text-xs font-bold uppercase tracking-[0.2em] ${light ? 'text-lime' : 'text-[#285548]'}`}
       >
         {eyebrow}
       </p>

@@ -42,7 +42,7 @@ export default async function ApartmentDetailsPage({
     <main id="main-content" className="section-wrap min-h-[70vh]">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#285548]">
             {apartment.displayLocation}
           </p>
           <h1 className="mt-3 font-display text-4xl leading-tight text-ink sm:text-5xl">
@@ -261,7 +261,7 @@ export default async function ApartmentDetailsPage({
           </div>
 
           <aside className="h-fit rounded-3xl border border-ink/10 bg-white p-6 shadow-sm lg:sticky lg:top-28">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-terracotta">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#285548]">
               Nightly rate
             </p>
             <p className="mt-2 font-display text-3xl text-ink">
@@ -278,7 +278,7 @@ export default async function ApartmentDetailsPage({
               href={`/booking?apartmentId=${encodeURIComponent(apartment.id)}&apartmentSlug=${encodeURIComponent(apartment.slug)}`}
               className="mt-6 w-full"
             >
-              Book this apartment
+              Start booking
             </ButtonLink>
             <p className="mt-3 text-center text-xs leading-5 text-muted">
               Booking dates and availability will be confirmed in the

@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from './button-link';
+import { StaywellLogo } from './staywell-logo';
 
 const links = [
   { label: 'Home', href: '/#home', section: 'home' },
-  { label: 'Book apartments', href: '/apartments', section: 'apartments' },
+  { label: 'Apartments', href: '/apartments', section: 'apartments' },
   { label: 'About us', href: '/#about', section: 'about' },
   { label: 'Contact us', href: '/#contact', section: 'contact' },
 ];
@@ -65,36 +66,13 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink/[0.07] bg-canvas/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
+      <div className="mx-auto flex h-[76px] max-w-[1320px] items-center justify-between px-5 sm:px-8 lg:px-12">
         <Link
           href="/#home"
           className="group flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
           aria-label="Staywell home"
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-forest text-lime">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="size-5"
-            >
-              <path
-                d="M4 19V8.8L12 4l8 4.8V19M8 19v-6h8v6M9 9.5h.01M15 9.5h.01"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <span className="leading-none">
-            <span className="block font-display text-xl font-semibold tracking-[-0.04em] text-ink">
-              staywell
-            </span>
-            <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.22em] text-muted">
-              Apartment stays
-            </span>
-          </span>
+          <StaywellLogo />
         </Link>
 
         <nav
@@ -107,6 +85,9 @@ export function SiteHeader() {
               <Link
                 key={link.label}
                 href={link.href}
+                aria-label={
+                  link.section === 'apartments' ? 'Book apartments' : undefined
+                }
                 aria-current={
                   active
                     ? link.section === 'apartments' || link.section === 'home'
@@ -180,13 +161,18 @@ export function SiteHeader() {
             if ((event.target as HTMLElement).closest('a')) closeMenu();
           }}
         >
-          <div className="mx-auto grid max-w-[1440px] gap-1 sm:px-3">
+          <div className="mx-auto grid max-w-[1320px] gap-1 sm:px-3">
             {links.map((link) => {
               const active = isActive(link.section);
               return (
                 <Link
                   key={link.label}
                   href={link.href}
+                  aria-label={
+                    link.section === 'apartments'
+                      ? 'Book apartments'
+                      : undefined
+                  }
                   aria-current={
                     active
                       ? link.section === 'apartments' || link.section === 'home'

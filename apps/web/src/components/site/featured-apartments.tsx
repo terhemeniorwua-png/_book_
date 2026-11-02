@@ -17,7 +17,7 @@ export async function FeaturedApartments() {
       <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
         <SectionHeading
           eyebrow="A place to begin"
-          title="Find your kind of stay."
+          title="Find Your Perfect Stay"
           description="Explore the apartments available for your next trip. Each listing includes its own details, rates, and amenities."
         />
         <ButtonLink

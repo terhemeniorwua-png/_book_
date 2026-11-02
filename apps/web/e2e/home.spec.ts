@@ -6,7 +6,7 @@ test('shows the Staywell apartment homepage and discovery entry points', async (
   await page.goto('/');
 
   await expect(
-    page.getByRole('heading', { name: /room to feel at home/i }),
+    page.getByRole('heading', { name: /stay somewhere special/i }),
   ).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Main navigation' }),

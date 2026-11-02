@@ -1,26 +1,77 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/playfair-display-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f4f3ed;
-  color: #202a25;
+  font-family: var(--font-sans);
+  background: #f6f1e8;
+  color: #292c29;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 @theme {
-  --color-canvas: #f4f3ed;
-  --color-ink: #202a25;
-  --color-forest: #193c34;
-  --color-forest-dark: #102c26;
-  --color-lime: #d9e99c;
-  --color-terracotta: #8a5138;
-  --color-sand: #eeeae0;
-  --color-sand-dark: #ded8ca;
-  --color-muted: #68746d;
-  --font-display:
-    'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --color-canvas: #f6f1e8;
+  --color-ink: #292c29;
+  --color-forest: #183c32;
+  --color-forest-dark: #102b24;
+  --color-lime: #e8d7b5;
+  --color-terracotta: #b42318;
+  --color-sand: #e8e3da;
+  --color-sand-dark: #d5cfc4;
+  --color-muted: #686f69;
+  --color-coral: #183c32;
+  --color-brand-primary: #183c32;
+  --color-brand-primary-hover: #102b24;
+  --color-brand-secondary: #285548;
+  --color-brand-accent: #c6a36b;
+  --color-brand-accent-soft: #e8d7b5;
+  --color-page: #f6f1e8;
+  --color-surface: #ffffff;
+  --color-text: #292c29;
+  --color-text-muted: #686f69;
+  --color-border: #e8e3da;
+  --color-success: #16803d;
+  --color-warning: #b7791f;
+  --color-error: #b42318;
+  --color-info: #175cd3;
+  --font-sans: 'Inter', Arial, Helvetica, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
 }
 
 * {
@@ -45,12 +96,12 @@ body {
 }
 
 :focus-visible {
-  outline-color: var(--color-terracotta);
+  outline-color: var(--color-forest);
 }
 
 @layer components {
   .section-wrap {
-    @apply mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28;
+    @apply mx-auto max-w-[1320px] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24;
   }
 
   .font-display {
@@ -77,6 +128,63 @@ body {
   transform: translateY(0);
   outline: 2px solid var(--color-forest-dark);
   outline-offset: 3px;
+}
+
+.bg-stone-50 {
+  background-color: var(--color-page);
+}
+
+.bg-stone-50 .bg-stone-900,
+.bg-stone-50 .bg-emerald-900 {
+  background-color: var(--color-brand-primary);
+}
+
+.bg-stone-50 .bg-stone-100,
+.bg-stone-50 .bg-emerald-50,
+.bg-stone-50 .bg-red-50 {
+  background-color: var(--color-page);
+}
+
+.bg-stone-50 .border-stone-200,
+.bg-stone-50 .border-stone-300 {
+  border-color: var(--color-border);
+}
+
+.bg-stone-50 .text-stone-900,
+.bg-stone-50 .text-stone-800,
+.bg-stone-50 .text-stone-700 {
+  color: var(--color-text);
+}
+
+.bg-stone-50 .text-stone-600,
+.bg-stone-50 .text-stone-500 {
+  color: var(--color-text-muted);
+}
+
+.bg-stone-50 .text-emerald-800 {
+  color: var(--color-success);
+}
+
+.bg-stone-50 .text-emerald-900 {
+  color: var(--color-brand-primary);
+}
+
+.bg-stone-50 .text-red-700,
+.bg-stone-50 .text-red-800 {
+  color: var(--color-error);
+}
+
+.bg-stone-50 .border-red-300 {
+  border-color: var(--color-error);
+}
+
+.bg-stone-50 .border-amber-300 {
+  border-color: var(--color-warning);
+}
+
+.bg-stone-50 h1,
+.bg-stone-50 h2 {
+  font-family: var(--font-display);
 }
 
 @media (prefers-reduced-motion: reduce) {

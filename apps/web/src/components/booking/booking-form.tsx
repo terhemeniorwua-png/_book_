@@ -148,7 +148,7 @@ export function BookingForm({
       <BookingProgress current={step === 'dates' ? 1 : 2} />
       <div className="mx-auto mt-10 grid max-w-6xl gap-8 lg:grid-cols-[1fr_340px]">
         <section className="rounded-3xl border border-ink/10 bg-white p-5 shadow-sm sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#285548]">
             {step === 'dates' ? 'Step 1 of 4' : 'Step 2 of 4'}
           </p>
           <h1 className="mt-2 font-display text-3xl text-ink">
@@ -339,7 +339,7 @@ export function BookingForm({
                 <button
                   disabled={submitting}
                   type="submit"
-                  className="min-h-12 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-white hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral disabled:cursor-wait disabled:opacity-60"
+                  className="min-h-12 rounded-xl bg-forest px-6 py-3 text-sm font-semibold text-white hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest disabled:cursor-wait disabled:opacity-60"
                 >
                   {submitting
                     ? 'Preparing your checkout…'
@@ -364,7 +364,7 @@ export function BookingForm({
             />
           </div>
           <div className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-terracotta">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#285548]">
               Your apartment
             </p>
             <h2 className="mt-2 font-display text-2xl text-ink">

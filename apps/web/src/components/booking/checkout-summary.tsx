@@ -215,7 +215,7 @@ export function CheckoutSummary({
     <main id="main-content" className="section-wrap min-h-[70vh]">
       <BookingProgress current={3} />
       <div className="mx-auto mt-10 max-w-6xl">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#285548]">
           Step 3 of 4 · Payment
         </p>
         <h1 className="mt-2 font-display text-4xl text-ink">
@@ -238,7 +238,7 @@ export function CheckoutSummary({
                 />
               </div>
               <div className="p-5 sm:p-6">
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-terracotta">
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#285548]">
                   {apartment.displayLocation}
                 </p>
                 <h2 className="mt-2 font-display text-2xl text-ink">
@@ -387,7 +387,7 @@ export function CheckoutSummary({
               type="button"
               onClick={() => void beginPayment()}
               disabled={paymentLoading}
-              className="min-h-12 w-full rounded-full bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral disabled:cursor-wait disabled:opacity-60"
+              className="min-h-12 w-full rounded-xl bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest disabled:cursor-wait disabled:opacity-60"
             >
               {paymentLoading
                 ? 'Connecting to Paystack…'

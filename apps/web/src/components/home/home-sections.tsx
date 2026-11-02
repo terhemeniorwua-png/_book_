@@ -6,35 +6,43 @@ export function HeroSection() {
   return (
     <section
       id="home"
-      className="relative isolate mx-auto grid min-h-[650px] max-w-[1440px] scroll-mt-20 items-center gap-10 overflow-hidden px-5 pb-20 pt-14 sm:px-8 md:min-h-[680px] md:grid-cols-[0.9fr_1.1fr] md:gap-4 md:py-16 lg:px-12 lg:pb-24"
+      className="relative isolate mx-auto grid min-h-[600px] max-w-[1320px] scroll-mt-20 items-center gap-10 overflow-hidden px-5 pb-16 pt-12 sm:px-8 md:min-h-[640px] md:grid-cols-[0.9fr_1.1fr] md:gap-4 md:py-16 lg:px-12 lg:pb-20"
     >
       <div className="relative z-10 max-w-2xl pb-5 md:pb-0">
-        <p className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-forest/15 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-forest">
-          <span className="size-1.5 rounded-full bg-terracotta" /> A more
-          thoughtful way to stay
+        <p className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-forest/15 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-forest">
+          <span className="size-1.5 rounded-full bg-[#c6a36b]" /> Your stay,
+          your comfort
         </p>
-        <h1 className="font-display text-[3.7rem] leading-[0.98] tracking-[-0.055em] text-ink sm:text-7xl lg:text-[5.7rem]">
-          Room to feel <span className="italic text-forest">at home.</span>
+        <h1 className="font-display text-[2.6rem] leading-[1.05] tracking-[-0.035em] text-ink sm:text-5xl lg:text-6xl">
+          Stay Somewhere Special.
         </h1>
         <p className="mt-7 max-w-lg text-base leading-7 text-muted sm:text-lg sm:leading-8">
-          A good stay makes space for the way you travel. Find an apartment that
-          fits your plans, your pace, and the moments in between.
+          Discover thoughtfully selected apartments designed to make every stay
+          comfortable, convenient and memorable.
         </p>
         <div className="mt-9 flex flex-wrap items-center gap-3">
           <ButtonLink href="/apartments">Explore apartments</ButtonLink>
           <a
             href="#about"
-            className="inline-flex min-h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold text-ink transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-ink transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
           >
-            Get to know us <span aria-hidden="true">↓</span>
+            Learn more <span aria-hidden="true">↓</span>
           </a>
         </div>
         <div className="mt-12 flex items-center gap-3 text-xs text-muted">
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-full bg-lime/70 text-forest"
+            className="flex size-9 items-center justify-center rounded-full bg-[#e8d7b5] text-forest"
           >
-            ✳
+            <svg viewBox="0 0 24 24" fill="none" className="size-4">
+              <path
+                d="m5 12 4 4L19 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
           <span>
             <strong className="font-semibold text-ink">
@@ -46,8 +54,8 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="relative mx-auto aspect-[1.05/1] w-full max-w-[680px] md:aspect-[0.93/1] md:max-w-none">
-        <div className="absolute -right-5 top-2 size-24 rounded-full bg-lime sm:right-3 sm:size-32" />
+      <div className="relative mx-auto aspect-square w-full max-w-[680px] md:aspect-[4/3] md:max-w-none">
+        <div className="absolute -right-5 top-2 size-24 rounded-full bg-[#e8d7b5] sm:right-3 sm:size-32" />
         <div className="absolute bottom-0 left-0 right-2 top-5 overflow-hidden rounded-[2rem] sm:bottom-4 sm:left-8 sm:top-0 sm:rounded-[2.5rem]">
           <Image
             src="/images/illustrative-living-room.jpg"
@@ -60,7 +68,7 @@ export function HeroSection() {
           <div className="absolute inset-0 bg-gradient-to-t from-forest/55 via-transparent to-transparent" />
           <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-3 sm:inset-x-8 sm:bottom-8">
             <div className="max-w-[240px] rounded-2xl border border-white/35 bg-white/85 p-4 shadow-lg backdrop-blur-md sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-terracotta">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-forest">
                 A place to settle in
               </p>
               <p className="mt-2 font-display text-xl leading-tight text-ink sm:text-2xl">
@@ -72,7 +80,7 @@ export function HeroSection() {
             </span>
           </div>
         </div>
-        <div className="absolute -left-1 top-12 hidden max-w-[150px] rotate-[-5deg] rounded-2xl bg-lime px-5 py-4 shadow-xl sm:block md:left-0 md:top-16">
+        <div className="absolute -left-1 top-12 hidden max-w-[150px] rounded-2xl bg-[#e8d7b5] px-5 py-4 shadow-sm sm:block md:left-0 md:top-16">
           <span className="block font-display text-3xl text-forest">01</span>
           <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-forest/75">
             Find your fit
@@ -86,8 +94,8 @@ export function HeroSection() {
 
 export function BookingEntrySection() {
   return (
-    <section className="mx-auto max-w-[1440px] px-5 pb-16 sm:px-8 lg:px-12">
-      <div className="flex flex-col gap-6 rounded-[1.75rem] bg-forest p-6 text-white shadow-[0_18px_50px_rgba(23,60,52,0.18)] sm:flex-row sm:items-center sm:justify-between sm:p-8 lg:px-10">
+    <section className="mx-auto max-w-[1320px] px-5 pb-16 sm:px-8 lg:px-12">
+      <div className="flex flex-col gap-6 rounded-2xl bg-forest p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-8 lg:px-10">
         <div className="flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-lime">
             <svg
@@ -107,7 +115,7 @@ export function BookingEntrySection() {
           </span>
           <div>
             <p className="font-display text-2xl leading-tight sm:text-3xl">
-              Your next stay starts here.
+              Your Stay, Made Simple.
             </p>
             <p className="mt-2 text-sm leading-6 text-white/65">
               Browse available apartments and find the details that matter to
@@ -156,7 +164,7 @@ export function WhyStaySection() {
               key={value.number}
               className="grid grid-cols-[56px_1fr] gap-4 border-b border-ink/10 py-6 first:pt-0 last:border-0 sm:grid-cols-[76px_1fr] sm:gap-6 sm:py-7"
             >
-              <span className="font-display text-2xl text-terracotta">
+              <span className="font-display text-2xl text-[#285548]">
                 {value.number}
               </span>
               <div>
@@ -177,8 +185,8 @@ export function WhyStaySection() {
 
 export function AboutSection() {
   return (
-    <section id="about" className="scroll-mt-24 bg-[#ebe8de]">
-      <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-12 lg:py-28">
+    <section id="about" className="scroll-mt-24 bg-[#e8e3da]">
+      <div className="mx-auto grid max-w-[1320px] gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-2 lg:items-center lg:gap-20 lg:px-12 lg:py-24">
         <div className="relative mx-auto aspect-[1.12/1] w-full max-w-[620px] overflow-hidden rounded-[2rem] sm:rounded-[2.5rem]">
           <Image
             src="/images/illustrative-interior.jpg"
@@ -214,10 +222,18 @@ export function AboutSection() {
 
 export function AmenitiesSection() {
   const details = [
-    { icon: '⌂', title: 'In the apartment', note: 'Amenities to be confirmed' },
-    { icon: '↗', title: 'Getting around', note: 'Transport details to come' },
-    { icon: '◷', title: 'Your stay', note: 'Check-in details to come' },
-    { icon: '＋', title: 'Good to know', note: 'House information to come' },
+    {
+      icon: 'building',
+      title: 'In the apartment',
+      note: 'Amenities to be confirmed',
+    },
+    {
+      icon: 'map-pin',
+      title: 'Getting around',
+      note: 'Transport details to come',
+    },
+    { icon: 'calendar', title: 'Your stay', note: 'Check-in details to come' },
+    { icon: 'info', title: 'Good to know', note: 'House information to come' },
   ];
 
   return (
@@ -232,13 +248,43 @@ export function AmenitiesSection() {
         {details.map((detail) => (
           <article
             key={detail.title}
-            className="rounded-3xl border border-ink/10 bg-white/70 p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-lg"
+            className="rounded-2xl border border-ink/10 bg-white p-6 transition hover:-translate-y-1 hover:shadow-md"
           >
             <span
               aria-hidden="true"
-              className="flex size-12 items-center justify-center rounded-2xl bg-lime/55 font-display text-2xl text-forest"
+              className="flex size-12 items-center justify-center rounded-2xl bg-[#e8d7b5] text-forest"
             >
-              {detail.icon}
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="size-5"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {detail.icon === 'building' ? (
+                  <>
+                    <path d="M6 22V3h12v19M6 12H4v10h16V12h-2" />
+                    <path d="M10 7h4M10 11h4M10 15h4M10 19h4" />
+                  </>
+                ) : detail.icon === 'map-pin' ? (
+                  <>
+                    <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                    <circle cx="12" cy="10" r="2.5" />
+                  </>
+                ) : detail.icon === 'calendar' ? (
+                  <>
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M16 3v4M8 3v4M3 11h18M8 15h.01M12 15h.01M16 15h.01" />
+                  </>
+                ) : (
+                  <>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
+                  </>
+                )}
+              </svg>
             </span>
             <h3 className="mt-6 font-display text-2xl text-ink">
               {detail.title}
@@ -255,19 +301,10 @@ export function LocationSection() {
   return (
     <section
       id="location"
-      className="mx-auto max-w-[1440px] px-5 pb-20 sm:px-8 lg:px-12 lg:pb-28"
+      className="mx-auto max-w-[1320px] px-5 pb-16 sm:px-8 lg:px-12 lg:pb-24"
     >
-      <div className="grid overflow-hidden rounded-[2rem] bg-[#dedfd3] lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="relative min-h-[300px] overflow-hidden bg-[radial-gradient(ellipse_at_20%_20%,#f3eddd_0%,transparent_36%),radial-gradient(ellipse_at_75%_75%,#abb9a4_0%,transparent_45%),linear-gradient(135deg,#d6dbcc,#c5c9b8)] p-8 sm:min-h-[380px] sm:p-12">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage:
-                'linear-gradient(32deg, transparent 48%, rgba(255,255,255,.8) 49%, rgba(255,255,255,.8) 50%, transparent 51%), linear-gradient(118deg, transparent 48%, rgba(255,255,255,.8) 49%, rgba(255,255,255,.8) 50%, transparent 51%)',
-              backgroundSize: '86px 86px',
-            }}
-          />
+      <div className="grid overflow-hidden rounded-2xl border border-[#e8e3da] bg-[#e8e3da] lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative min-h-[300px] overflow-hidden bg-[#f6f1e8] p-8 sm:min-h-[380px] sm:p-12">
           <span className="relative inline-flex size-12 items-center justify-center rounded-full bg-forest text-lime shadow-lg">
             <svg
               aria-hidden="true"
@@ -289,8 +326,8 @@ export function LocationSection() {
               />
             </svg>
           </span>
-          <div className="absolute bottom-8 left-8 rounded-2xl bg-white/85 px-5 py-4 shadow-lg backdrop-blur sm:bottom-12 sm:left-12">
-            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-terracotta">
+          <div className="absolute bottom-8 left-8 rounded-xl border border-[#e8e3da] bg-white px-5 py-4 sm:bottom-12 sm:left-12">
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#285548]">
               Location preview
             </p>
             <p className="mt-1 font-display text-xl text-ink">
@@ -347,7 +384,7 @@ export function FAQSection() {
   return (
     <section
       id="faq"
-      className="bg-forest px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28"
+      className="bg-forest px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24"
     >
       <div className="mx-auto grid max-w-[1296px] gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
         <SectionHeading
@@ -393,7 +430,7 @@ export function ContactSection() {
       id="contact"
       className="scroll-mt-24 px-5 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28"
     >
-      <div className="mx-auto grid max-w-[1296px] gap-10 rounded-[2rem] bg-[#e9e3d6] p-7 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-14">
+      <div className="mx-auto grid max-w-[1296px] gap-10 rounded-2xl bg-[#e8e3da] p-7 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-12">
         <div>
           <SectionHeading
             eyebrow="We’re here to help"
@@ -401,7 +438,7 @@ export function ContactSection() {
             description="The owner’s contact details have not been supplied yet. They will be added here before reservations open."
           />
           <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-xs font-semibold text-muted">
-            <span className="size-1.5 rounded-full bg-terracotta" /> Contact
+            <span className="size-1.5 rounded-full bg-[#c6a36b]" /> Contact
             information coming soon
           </p>
         </div>

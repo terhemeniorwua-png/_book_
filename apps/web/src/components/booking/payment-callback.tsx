@@ -111,7 +111,7 @@ export function PaymentCallback({
       <section className="mx-auto mt-10 max-w-2xl rounded-3xl border border-ink/10 bg-white p-7 text-center shadow-sm sm:p-10">
         <p
           role={result.kind === 'error' ? 'alert' : 'status'}
-          className="text-xs font-bold uppercase tracking-[0.18em] text-terracotta"
+          className="text-xs font-bold uppercase tracking-[0.18em] text-[#285548]"
         >
           {result.kind === 'success'
             ? 'Booking complete'
@@ -143,7 +143,7 @@ export function PaymentCallback({
         ) : null}
         <Link
           href="/apartments"
-          className="mt-6 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+          className="mt-6 inline-flex rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
         >
           Browse apartments
         </Link>

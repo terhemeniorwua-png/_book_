@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
-import { SiteFooter } from '@/components/site/site-footer';
-import { SiteHeader } from '@/components/site/site-header';
+import { SiteChrome } from '@/components/site/site-chrome';
 import './globals.css';
 
 export const metadata: Metadata = {
+  ...(process.env.NEXT_PUBLIC_APP_URL
+    ? { metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL) }
+    : {}),
   title: {
     default: 'Staywell — Apartment stays, made thoughtful',
     template: '%s | Staywell',
@@ -26,9 +28,9 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <SiteHeader />
+        <SiteChrome position="header" />
         {children}
-        <SiteFooter />
+        <SiteChrome position="footer" />
       </body>
     </html>
   );

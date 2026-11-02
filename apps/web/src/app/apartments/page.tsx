@@ -80,7 +80,7 @@ export default async function ApartmentsPage({
               defaultValue={first(params.q)}
               maxLength={100}
               placeholder="Name or description"
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -90,7 +90,7 @@ export default async function ApartmentsPage({
               defaultValue={first(params.location)}
               maxLength={120}
               placeholder="Area or region"
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -102,7 +102,7 @@ export default async function ApartmentsPage({
               step="1"
               defaultValue={first(params.minPrice)}
               inputMode="decimal"
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -114,7 +114,7 @@ export default async function ApartmentsPage({
               step="1"
               defaultValue={first(params.maxPrice)}
               inputMode="decimal"
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -126,7 +126,7 @@ export default async function ApartmentsPage({
               max="30"
               step="1"
               defaultValue={first(params.bedrooms)}
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -138,7 +138,7 @@ export default async function ApartmentsPage({
               max="50"
               step="1"
               defaultValue={first(params.guests)}
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-ink">
@@ -146,7 +146,7 @@ export default async function ApartmentsPage({
             <select
               name="sort"
               defaultValue={first(params.sort) ?? 'newest'}
-              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+              className="min-h-11 rounded-xl border border-ink/15 bg-canvas px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
             >
               <option value="newest">Recently added</option>
               <option value="price_asc">Price: low to high</option>
@@ -180,7 +180,7 @@ export default async function ApartmentsPage({
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
           >
             Search apartments
           </button>
@@ -196,7 +196,7 @@ export default async function ApartmentsPage({
       <section aria-labelledby="apartment-results" className="mt-14">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#285548]">
               Available listings
             </p>
             <h2
@@ -242,7 +242,7 @@ export default async function ApartmentsPage({
             </p>
             <Link
               href="/apartments"
-              className="mt-5 inline-flex rounded-full bg-forest px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+              className="mt-5 inline-flex rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
             >
               Clear filters
             </Link>
