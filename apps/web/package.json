@@ -1,0 +1,31 @@
+{
+  "name": "@apartment/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "next": "15.5.12",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@tailwindcss/postcss": "4.1.16",
+    "@types/node": "22.19.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.39.1",
+    "eslint-config-next": "15.5.12",
+    "tailwindcss": "4.1.16",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
