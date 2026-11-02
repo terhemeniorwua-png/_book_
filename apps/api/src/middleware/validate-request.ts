@@ -10,15 +10,27 @@ export function validateRequest(schemas: Schemas): RequestHandler {
       const schema = schemas[part];
       if (!schema) continue;
       const { error, value } = schema.validate(request[part], {
-        abortEarly: false, convert: true, allowUnknown: false, stripUnknown: false,
+        abortEarly: false,
+        convert: true,
+        allowUnknown: false,
+        stripUnknown: false,
       });
       if (error) {
-        const validationError = Object.assign(new Error('Request validation failed'), {
-          status: 400, code: 'VALIDATION_ERROR',
-        });
+        const validationError = Object.assign(
+          new Error('Request validation failed'),
+          {
+            status: 400,
+            code: 'VALIDATION_ERROR',
+          },
+        );
         return next(validationError);
       }
-      Object.assign(request, { [part]: value });
+      Object.defineProperty(request, part, {
+        value,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
     }
     return next();
   };

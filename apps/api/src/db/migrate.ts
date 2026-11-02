@@ -1,20 +1,61 @@
-import { Sequelize } from 'sequelize';
+import { pathToFileURL } from 'node:url';
+import type { Sequelize } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
+import { sequelize as defaultSequelize } from './client.js';
 import { env } from '../config/env.js';
+import * as catalogAndAccounts from './migrations/20261102000100-create-catalog-and-accounts.js';
+import * as bookingsPaymentsInventory from './migrations/20261102000200-create-bookings-payments-and-inventory.js';
+import * as inventoryExclusionAndAudit from './migrations/20261102000300-add-inventory-exclusion-and-booking-audit.js';
 
-const sequelize = new Sequelize(env.DATABASE_URL, { logging: false });
-const migrator = new Umzug({
-  migrations: { glob: 'src/db/migrations/*.ts' },
-  context: sequelize.getQueryInterface(),
-  storage: new SequelizeStorage({ sequelize }),
-  logger: console,
-});
+export function createMigrator(sequelize: Sequelize = defaultSequelize) {
+  return new Umzug({
+    migrations: [
+      {
+        name: '20261102000100-create-catalog-and-accounts',
+        up: catalogAndAccounts.up,
+        down: catalogAndAccounts.down,
+      },
+      {
+        name: '20261102000200-create-bookings-payments-and-inventory',
+        up: bookingsPaymentsInventory.up,
+        down: bookingsPaymentsInventory.down,
+      },
+      {
+        name: '20261102000300-add-inventory-exclusion-and-booking-audit',
+        up: inventoryExclusionAndAudit.up,
+        down: inventoryExclusionAndAudit.down,
+      },
+    ],
+    context: sequelize.getQueryInterface(),
+    storage: new SequelizeStorage({ sequelize }),
+    logger: env.LOG_LEVEL === 'debug' ? console : undefined,
+  });
+}
 
-try {
-  const command = process.argv[2];
-  if (command === 'up') await migrator.up();
-  else if (command === 'down') await migrator.down();
-  else throw new Error('Use migration command "up" or "down".');
-} finally {
-  await sequelize.close();
+export async function runMigrations(
+  command: 'up' | 'down',
+  sequelize: Sequelize = defaultSequelize,
+) {
+  if (command === 'down' && env.NODE_ENV === 'production') {
+    throw new Error(
+      'Down migrations are disabled in production to protect stored data.',
+    );
+  }
+  const migrator = createMigrator(sequelize);
+  return command === 'up' ? migrator.up() : migrator.down();
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  try {
+    const command = process.argv[2];
+    if (command !== 'up' && command !== 'down') {
+      throw new Error('Use migration command "up" or "down".');
+    }
+    await runMigrations(command);
+  } finally {
+    await defaultSequelize.close();
+  }
 }
