@@ -6,6 +6,9 @@ import { env } from '../config/env.js';
 import * as catalogAndAccounts from './migrations/20261102000100-create-catalog-and-accounts.js';
 import * as bookingsPaymentsInventory from './migrations/20261102000200-create-bookings-payments-and-inventory.js';
 import * as inventoryExclusionAndAudit from './migrations/20261102000300-add-inventory-exclusion-and-booking-audit.js';
+import * as apartmentPolicies from './migrations/20261102000400-add-apartment-policies.js';
+import * as bookingAccessAndCheckoutData from './migrations/20261102000500-add-booking-access-and-checkout-data.js';
+import * as paystackIntegrity from './migrations/20261102000600-add-paystack-integrity.js';
 
 export function createMigrator(sequelize: Sequelize = defaultSequelize) {
   return new Umzug({
@@ -24,6 +27,21 @@ export function createMigrator(sequelize: Sequelize = defaultSequelize) {
         name: '20261102000300-add-inventory-exclusion-and-booking-audit',
         up: inventoryExclusionAndAudit.up,
         down: inventoryExclusionAndAudit.down,
+      },
+      {
+        name: '20261102000400-add-apartment-policies',
+        up: apartmentPolicies.up,
+        down: apartmentPolicies.down,
+      },
+      {
+        name: '20261102000500-add-booking-access-and-checkout-data',
+        up: bookingAccessAndCheckoutData.up,
+        down: bookingAccessAndCheckoutData.down,
+      },
+      {
+        name: '20261102000600-add-paystack-integrity',
+        up: paystackIntegrity.up,
+        down: paystackIntegrity.down,
       },
     ],
     context: sequelize.getQueryInterface(),

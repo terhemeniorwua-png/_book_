@@ -110,6 +110,27 @@ export const Apartment = sequelize.define(
       allowNull: true,
       field: 'max_stay_nights',
     },
+    houseRules: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      field: 'house_rules',
+    },
+    checkInPolicy: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'check_in_policy',
+    },
+    checkOutPolicy: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'check_out_policy',
+    },
+    cancellationPolicy: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'cancellation_policy',
+    },
   },
   {
     tableName: 'apartments',

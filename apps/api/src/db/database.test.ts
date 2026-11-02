@@ -7,6 +7,8 @@ import {
   expect,
   it,
 } from 'vitest';
+import request from 'supertest';
+import { createHash } from 'node:crypto';
 
 const enabled = process.env.RUN_DB_INTEGRATION_TESTS === 'true';
 
@@ -27,7 +29,7 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     const { createMigrator } = await import('./migrate.js');
     const migrator = createMigrator(db);
     await migrator.up();
-    await migrator.down({ step: 3 });
+    await migrator.down({ step: 6 });
     await migrator.up();
     models = await import('./models/index.js');
   }, 60_000);
@@ -106,6 +108,587 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     const visibleSlugs = visible.map((apartment) => apartment.get('slug'));
     expect(visibleSlugs).toContain(published.get('slug'));
     expect(visibleSlugs).not.toContain(draft.get('slug'));
+  });
+
+  it('serves only published apartments with validated filters and a safe public projection', async () => {
+    const published = await makeApartment(
+      models,
+      transaction,
+      'catalog-public',
+    );
+    const draft = await makeApartment(models, transaction, 'catalog-draft');
+    await published.update(
+      {
+        status: 'published',
+        addressLine1: 'Private street 99',
+        displayLocation: 'Central District',
+        nightlyPrice: '250.00',
+        houseRules: ['No smoking'],
+        checkInPolicy: 'After 15:00',
+      },
+      { transaction },
+    );
+    await draft.update({ status: 'draft' }, { transaction });
+    const wifi = await models.Amenity.create(
+      { slug: `wifi-${crypto.randomUUID()}`, name: 'Wi-Fi' },
+      { transaction },
+    );
+    await models.ApartmentAmenity.create(
+      {
+        apartmentId: published.get('id') as string,
+        amenityId: wifi.get('id') as string,
+      },
+      { transaction },
+    );
+    await models.ApartmentCharge.create(
+      {
+        apartmentId: published.get('id') as string,
+        name: 'Cleaning fee',
+        chargeType: 'fee',
+        calculationBasis: 'flat',
+        amount: '75.00',
+        currency: 'NGN',
+        isRequired: true,
+        isActive: true,
+      },
+      { transaction },
+    );
+    await transaction.commit();
+    transaction = await db.transaction();
+
+    const { createApp } = await import('../app.js');
+    const { validateEnvironment } = await import('../config/env.js');
+    const catalogApp = createApp();
+    try {
+      const listing = await request(catalogApp).get(
+        '/api/v1/apartments?minPrice=200&guests=2',
+      );
+      expect(listing.status).toBe(200);
+      expect(
+        listing.body.items.map((item: { slug: string }) => item.slug),
+      ).toContain(published.get('slug'));
+      expect(
+        listing.body.items.map((item: { slug: string }) => item.slug),
+      ).not.toContain(draft.get('slug'));
+      const filteredByAmenity = await request(catalogApp).get(
+        `/api/v1/apartments?amenities=${wifi.get('slug')}`,
+      );
+      expect(filteredByAmenity.status).toBe(200);
+      expect(
+        filteredByAmenity.body.items.map((item: { slug: string }) => item.slug),
+      ).toContain(published.get('slug'));
+      const publicRow = listing.body.items.find(
+        (item: { slug: string }) => item.slug === published.get('slug'),
+      );
+      expect(publicRow.addressLine1).toBeUndefined();
+      expect(publicRow.objectKey).toBeUndefined();
+
+      const details = await request(catalogApp).get(
+        `/api/v1/apartments/${published.get('slug')}`,
+      );
+      expect(details.status).toBe(200);
+      expect(details.body.item.houseRules).toEqual(['No smoking']);
+      expect(details.body.item.checkInPolicy).toBe('After 15:00');
+      expect(details.body.item.pricing.additionalCharges).toEqual([
+        expect.objectContaining({
+          name: 'Cleaning fee',
+          calculationBasis: 'flat',
+          amount: '75.00',
+          required: true,
+        }),
+      ]);
+      expect(details.body.item.addressLine1).toBeUndefined();
+
+      expect(
+        (
+          await request(catalogApp).get(
+            `/api/v1/apartments/${draft.get('slug')}`,
+          )
+        ).status,
+      ).toBe(404);
+      expect(
+        (await request(catalogApp).get('/api/v1/apartments?page=0')).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(catalogApp).get(
+            '/api/v1/apartments?minPrice=300&maxPrice=100',
+          )
+        ).status,
+      ).toBe(400);
+
+      const limitedApp = createApp(
+        validateEnvironment({
+          NODE_ENV: 'test',
+          DATABASE_URL: 'postgres://test:unused@localhost/test',
+          RATE_LIMIT_MAX: '300',
+          RATE_LIMIT_APARTMENT_MAX: '1',
+        }),
+      );
+      expect((await request(limitedApp).get('/api/v1/apartments')).status).toBe(
+        200,
+      );
+      expect((await request(limitedApp).get('/api/v1/apartments')).status).toBe(
+        429,
+      );
+    } finally {
+      await models.Apartment.destroy({
+        where: { id: [published.get('id'), draft.get('id')] },
+        force: true,
+        transaction,
+      });
+      await models.Amenity.destroy({
+        where: { id: wifi.get('id') },
+        transaction,
+      });
+      await transaction.commit();
+      transaction = await db.transaction();
+    }
+  });
+
+  it('creates a priced pending reservation once and protects checkout with its access token', async () => {
+    const apartment = await makeApartment(models, transaction, 'checkout');
+    await apartment.update(
+      { status: 'published', nightlyPrice: '200.00', maxGuests: 3 },
+      { transaction },
+    );
+    await models.ApartmentCharge.create(
+      {
+        apartmentId: apartment.get('id') as string,
+        name: 'Nightly service fee',
+        chargeType: 'fee',
+        calculationBasis: 'per_night',
+        amount: '10.00',
+        currency: 'NGN',
+        isRequired: true,
+        isActive: true,
+      },
+      { transaction },
+    );
+    await transaction.commit();
+    transaction = await db.transaction();
+
+    const { createApp } = await import('../app.js');
+    const bookingApp = createApp();
+    const idempotencyKey = '1'.repeat(64);
+    const accessToken = '2'.repeat(64);
+    const payload = {
+      apartmentId: apartment.get('id'),
+      checkIn: '2030-08-01',
+      checkOut: '2030-08-03',
+      guestCount: 2,
+      fullName: '  Ada   Guest  ',
+      email: 'ADA.GUEST@EXAMPLE.TEST',
+      phone: '08031234567',
+      specialRequests: 'A quiet room, please.',
+      acceptedTerms: true,
+    };
+
+    try {
+      const headers = {
+        'Idempotency-Key': idempotencyKey,
+        Authorization: `Bearer ${accessToken}`,
+      };
+      const submissions = await Promise.all([
+        request(bookingApp).post('/api/v1/bookings').set(headers).send(payload),
+        request(bookingApp).post('/api/v1/bookings').set(headers).send(payload),
+      ]);
+      expect(submissions.map((submission) => submission.status).sort()).toEqual(
+        [200, 201],
+      );
+      const created = submissions.find(
+        (submission) => submission.status === 201,
+      )!;
+      const repeated = submissions.find(
+        (submission) => submission.status === 200,
+      )!;
+      expect(repeated.body.bookingReference).toBe(
+        created.body.bookingReference,
+      );
+      expect(created.body.totalAmount).toBe('420.00');
+      expect(created.body.priceBreakdown.charges[0].lineTotal).toBe('20.00');
+      expect(JSON.stringify(created.body)).not.toContain('ADA.GUEST');
+      expect(JSON.stringify(created.body)).not.toContain('08031234567');
+
+      const duplicates = await models.Booking.count({
+        where: {
+          idempotencyKeyHash: createHash('sha256')
+            .update(idempotencyKey)
+            .digest('hex'),
+        },
+        transaction,
+      });
+      const guests = await models.Guest.count({ transaction });
+      expect(duplicates).toBe(1);
+      expect(guests).toBe(1);
+      const storedBooking = await models.Booking.findOne({
+        where: {
+          idempotencyKeyHash: createHash('sha256')
+            .update(idempotencyKey)
+            .digest('hex'),
+        },
+        transaction,
+      });
+      const storedGuest = storedBooking
+        ? await models.Guest.findByPk(storedBooking.get('guestId') as string, {
+            transaction,
+          })
+        : null;
+      expect(storedGuest?.get('email')).toBe('ada.guest@example.test');
+      expect(storedGuest?.get('phone')).toBe('+2348031234567');
+      expect(storedBooking?.get('acceptedPolicySnapshot')).toEqual({
+        checkInPolicy: null,
+        checkOutPolicy: null,
+        cancellationPolicy: null,
+        houseRules: [],
+      });
+
+      const reference = created.body.bookingReference as string;
+      expect(
+        (
+          await request(bookingApp).get(
+            `/api/v1/bookings/${reference}/checkout`,
+          )
+        ).status,
+      ).toBe(404);
+      expect(
+        (
+          await request(bookingApp)
+            .get(`/api/v1/bookings/${reference}/checkout`)
+            .set('Authorization', `Bearer ${'3'.repeat(64)}`)
+        ).status,
+      ).toBe(404);
+      const checkout = await request(bookingApp)
+        .get(`/api/v1/bookings/${reference}/checkout`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      expect(checkout.status).toBe(200);
+      expect(checkout.body.item.totalAmount).toBe('420.00');
+      expect(checkout.body.item.apartment.id).toBe(apartment.get('id'));
+      expect(JSON.stringify(checkout.body)).not.toContain(
+        'ada.guest@example.test',
+      );
+
+      const conflict = await request(bookingApp)
+        .post('/api/v1/bookings')
+        .set(headers)
+        .send({ ...payload, fullName: 'A different guest' });
+      expect(conflict.status).toBe(409);
+      expect(
+        (
+          await request(bookingApp)
+            .post('/api/v1/bookings')
+            .set(headers)
+            .send({ ...payload, fullName: undefined })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(bookingApp)
+            .post('/api/v1/bookings')
+            .set(headers)
+            .send({ ...payload, acceptedTerms: false })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(bookingApp)
+            .post('/api/v1/bookings')
+            .set(headers)
+            .send({ ...payload, email: 'nope' })
+        ).status,
+      ).toBe(400);
+      const invalidPhone = await request(bookingApp)
+        .post('/api/v1/bookings')
+        .set(headers)
+        .send({ ...payload, phone: '0000000' });
+      expect(invalidPhone.status).toBe(400);
+      expect(invalidPhone.body.error.message).toContain('valid phone number');
+    } finally {
+      const keyHash = createHash('sha256').update(idempotencyKey).digest('hex');
+      const booking = await models.Booking.findOne({
+        where: { idempotencyKeyHash: keyHash },
+        transaction,
+      });
+      if (booking) {
+        const guestId = booking.get('guestId') as string;
+        await booking.destroy({ force: true, transaction });
+        await models.Guest.destroy({
+          where: { id: guestId },
+          force: true,
+          transaction,
+        });
+      }
+      await models.Apartment.destroy({
+        where: { id: apartment.get('id') },
+        force: true,
+        transaction,
+      });
+      await transaction.commit();
+      transaction = await db.transaction();
+    }
+  });
+
+  it('serves private-free availability and server-priced quotes, expires stale holds, and enforces booking rules', async () => {
+    const apartment = await makeApartment(models, transaction, 'availability');
+    await apartment.update(
+      {
+        status: 'published',
+        nightlyPrice: '200.00',
+        maxGuests: 3,
+        minStayNights: 2,
+        maxStayNights: 8,
+        checkInPolicy: 'Check-in after 15:00',
+        checkOutPolicy: 'Check-out before 11:00',
+      },
+      { transaction },
+    );
+    await models.ApartmentCharge.create(
+      {
+        apartmentId: apartment.get('id') as string,
+        name: 'Nightly service fee',
+        chargeType: 'fee',
+        calculationBasis: 'per_night',
+        amount: '10.00',
+        currency: 'NGN',
+        isRequired: true,
+        isActive: true,
+      },
+      { transaction },
+    );
+    const privateGuest = await makeGuest(
+      models,
+      transaction,
+      'availability-private',
+    );
+    const draftApartment = await makeApartment(
+      models,
+      transaction,
+      'availability-draft',
+    );
+    const expired = await makeBooking(
+      models,
+      transaction,
+      apartment.get('id') as string,
+      privateGuest.get('id') as string,
+      '2035-10-01',
+      '2035-10-03',
+      { expiresAt: new Date(Date.now() - 60_000) },
+    );
+    await makeBooking(
+      models,
+      transaction,
+      apartment.get('id') as string,
+      privateGuest.get('id') as string,
+      '2035-10-05',
+      '2035-10-08',
+    );
+    const confirmed = await makeBooking(
+      models,
+      transaction,
+      apartment.get('id') as string,
+      privateGuest.get('id') as string,
+      '2035-10-12',
+      '2035-10-14',
+    );
+    await confirmed.update({ status: 'confirmed' }, { transaction });
+    await models.AvailabilityBlock.create(
+      {
+        apartmentId: apartment.get('id') as string,
+        startDate: '2035-10-20',
+        endDate: '2035-10-22',
+        reason: 'Maintenance details must remain private',
+      },
+      { transaction },
+    );
+    await transaction.commit();
+    transaction = await db.transaction();
+
+    const { createApp } = await import('../app.js');
+    const availabilityApp = createApp();
+    const apartmentId = apartment.get('id') as string;
+    const url = `/api/v1/apartments/${apartmentId}`;
+    try {
+      const availability = await request(availabilityApp).get(
+        `${url}/availability?from=2035-10-01&to=2035-10-25`,
+      );
+      expect(availability.status).toBe(200);
+      expect(availability.body.unavailableRanges).toEqual([
+        { startDate: '2035-10-05', endDate: '2035-10-08' },
+        { startDate: '2035-10-12', endDate: '2035-10-14' },
+        { startDate: '2035-10-20', endDate: '2035-10-22' },
+      ]);
+      expect(JSON.stringify(availability.body)).not.toContain(
+        'availability-private',
+      );
+      expect(JSON.stringify(availability.body)).not.toContain('AB-');
+      await expired.reload();
+      expect(expired.get('status')).toBe('expired');
+      expect(
+        (
+          await request(availabilityApp).get(
+            `/api/v1/apartments/${draftApartment.get('id')}/availability?from=2035-10-01&to=2035-10-03`,
+          )
+        ).status,
+      ).toBe(404);
+
+      const adjacentQuote = await request(availabilityApp).get(
+        `${url}/quote?checkIn=2035-10-08&checkOut=2035-10-10&guestCount=2`,
+      );
+      expect(adjacentQuote.status).toBe(200);
+      expect(adjacentQuote.body.totalAmount).toBe('420.00');
+      expect(adjacentQuote.body.nights).toBe(2);
+      expect(adjacentQuote.body.apartment.checkInPolicy).toBe(
+        'Check-in after 15:00',
+      );
+      expect(adjacentQuote.body.apartment.checkOutPolicy).toBe(
+        'Check-out before 11:00',
+      );
+
+      expect(
+        (
+          await request(availabilityApp).get(
+            `${url}/quote?checkIn=2035-10-07&checkOut=2035-10-09&guestCount=2`,
+          )
+        ).status,
+      ).toBe(409);
+      expect(
+        (
+          await request(availabilityApp).get(
+            `${url}/quote?checkIn=2035-10-08&checkOut=2035-10-10&guestCount=4`,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(availabilityApp).get(
+            `${url}/quote?checkIn=2020-01-01&checkOut=2020-01-03&guestCount=1`,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(availabilityApp).get(
+            `${url}/quote?checkIn=2035-10-10&checkOut=2035-10-09&guestCount=1`,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(availabilityApp).get(
+            `${url}/availability?from=2035-02-30&to=2035-03-05`,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(availabilityApp).get(
+            `/api/v1/apartments/${crypto.randomUUID()}/availability?from=2035-10-01&to=2035-10-03`,
+          )
+        ).status,
+      ).toBe(404);
+    } finally {
+      const bookingRows = await models.Booking.findAll({
+        where: { apartmentId },
+        attributes: ['guestId'],
+        transaction,
+      });
+      await models.Booking.destroy({
+        where: { apartmentId },
+        force: true,
+        transaction,
+      });
+      await models.Guest.destroy({
+        where: { id: bookingRows.map((booking) => booking.get('guestId')) },
+        force: true,
+        transaction,
+      });
+      await models.Apartment.destroy({
+        where: { id: apartmentId },
+        force: true,
+        transaction,
+      });
+      await models.Apartment.destroy({
+        where: { id: draftApartment.get('id') },
+        force: true,
+        transaction,
+      });
+      await transaction.commit();
+      transaction = await db.transaction();
+    }
+  });
+
+  it('prevents concurrent API bookings, rejects client prices, and rolls back a losing guest insert', async () => {
+    const apartment = await makeApartment(
+      models,
+      transaction,
+      'api-concurrency',
+    );
+    await apartment.update({ status: 'published' }, { transaction });
+    const apartmentId = apartment.get('id') as string;
+    await transaction.commit();
+    transaction = await db.transaction();
+
+    const { createApp } = await import('../app.js');
+    const bookingApp = createApp();
+    const basePayload = {
+      apartmentId,
+      checkIn: '2035-12-01',
+      checkOut: '2035-12-04',
+      guestCount: 1,
+      email: 'race@example.test',
+      phone: '08031234567',
+      acceptedTerms: true,
+    };
+    const makeHeaders = (suffix: string) => ({
+      'Idempotency-Key': suffix.repeat(64),
+      Authorization: `Bearer ${suffix.repeat(64)}`,
+    });
+    try {
+      const rejectedClientPrice = await request(bookingApp)
+        .post('/api/v1/bookings')
+        .set(makeHeaders('a'))
+        .send({ ...basePayload, fullName: 'Guest A', price: 1 });
+      expect(rejectedClientPrice.status).toBe(400);
+
+      const results = await Promise.all([
+        request(bookingApp)
+          .post('/api/v1/bookings')
+          .set(makeHeaders('b'))
+          .send({ ...basePayload, fullName: 'Guest B' }),
+        request(bookingApp)
+          .post('/api/v1/bookings')
+          .set(makeHeaders('c'))
+          .send({ ...basePayload, fullName: 'Guest C' }),
+      ]);
+      expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+      expect(
+        await models.Booking.count({ where: { apartmentId }, transaction }),
+      ).toBe(1);
+      expect(await models.Guest.count({ transaction })).toBe(1);
+    } finally {
+      const bookingRows = await models.Booking.findAll({
+        where: { apartmentId },
+        attributes: ['guestId'],
+        transaction,
+      });
+      await models.Booking.destroy({
+        where: { apartmentId },
+        force: true,
+        transaction,
+      });
+      await models.Guest.destroy({
+        where: { id: bookingRows.map((booking) => booking.get('guestId')) },
+        force: true,
+        transaction,
+      });
+      await models.Apartment.destroy({
+        where: { id: apartmentId },
+        force: true,
+        transaction,
+      });
+      await transaction.commit();
+      transaction = await db.transaction();
+    }
   });
 
   it('rejects overlapping reservations', async () => {

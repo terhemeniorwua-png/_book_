@@ -28,27 +28,39 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [x] Run all migrations up/down/up and schema, expiry, adjacency, and concurrent inventory integration tests against a disposable dedicated PostgreSQL test database; run workspace checks.
 - [x] Acceptance: database setup, schema, relationships, constraints, provisioning, and migration commands are documented and verified.
 
-## Phase 4 — Product and experience design — Not started
+## Phase 4 — Public homepage and shared design — Complete
 
-- [ ] Define apartment catalog, amenities, pricing display, occupancy, date selection, and mobile-first reservation flows based on the reference experience.
-- [ ] Document accessibility, responsive behavior, image handling, and design tokens.
-- [ ] Acceptance: approved page map and interaction requirements cover browse, apartment details, reservation, and confirmation.
+- [x] Create the responsive public homepage, shared navigation/footer, and original visual design informed by the reference property presentation.
+- [x] Add hero, API-backed featured apartments, about, value proposition, amenities, location, FAQ, contact, and footer/policy placeholders without inventing property facts.
+- [x] Add accessible mobile navigation, semantic content, responsive layouts, focus states, reduced-motion handling, and optimized illustrative images.
+- [x] Show an explicit development-only no-inventory state when the apartment API is unavailable; never display mock listings.
+- [x] Acceptance: frontend lint, typecheck, and production build pass; navigation provides the future apartment discovery entry point.
 
-## Phase 5 — API contracts and authorization — Not started
+## Phase 5 — Apartment discovery — Complete
 
-- [ ] Implement feature API contracts, authentication, and authorization over the Phase 3 data models.
-- [ ] Acceptance: API integration tests cover validation and access control.
+- [x] Add published-only, paginated apartment listing and detail endpoints with Joi-validated search, price, bedroom, guest, location, and amenity filters.
+- [x] Return a safe public projection with public pricing, applicable charges, amenities, policy fields, and short-lived signed image URLs when private S3-compatible storage is configured.
+- [x] Add responsive listing cards, server-backed filters, pagination, apartment galleries/details, missing-image/API/unknown-listing states, and booking links carrying the correct apartment ID.
+- [x] Add API/PostgreSQL and frontend contract tests; verify lint, typechecks, and production builds.
+- [x] Acceptance: guests can browse published listings, filter inventory, open apartment details, and continue using the selected apartment identifier.
 
-## Phase 6 — Apartment discovery — Not started
+## Phase 6 — Availability and reservation lifecycle — Complete
 
-- [ ] Implement responsive apartment listing, detail pages, controlled image delivery, amenities, and server-backed search/filtering.
-- [ ] Acceptance: catalog and detail views use API data, handle loading/empty/error states, and pass accessibility and browser checks.
+- [x] Add server-side date/guest capacity checks, pricing snapshots, atomic pending holds, and expiry for checkout.
+- [x] Implement public availability range and trusted price quote endpoints with publication, guest/stay limits, policy display, blocked dates, reservations, and live holds.
+- [x] Build a responsive date calendar that loads unavailable periods, validates date and guest selection, and displays server-priced totals before guest information.
+- [x] Use database transactions and PostgreSQL exclusion constraints to prevent overlapping active reservations; preserve adjacent checkout/check-in dates.
+- [x] Expire unpaid pending holds idempotently during availability, quote, and creation requests so stale inventory claims are released without a required scheduled worker.
+- [x] Test invalid/past dates, stay rules, unpublished apartments, overlapping and concurrent requests, authoritative price rejection, expired holds, boundary dates, and rollback after conflict.
+- [x] Acceptance: concurrent requests cannot double-book; reservation state and expiry behavior are covered by PostgreSQL integration tests.
 
-## Phase 7 — Availability and reservation lifecycle — Not started
+## Phase 7 — Guest information and checkout — Complete
 
-- [ ] Implement date/guest selection, authoritative availability checks, pricing calculation, reservation holds, expiration, and booking confirmation.
-- [ ] Use database transactions and constraints to prevent overlapping active reservations.
-- [ ] Acceptance: concurrent requests cannot double-book; reservation state transitions and expiry are covered by integration tests.
+- [x] Add date and guest-information steps with frontend Zod and backend Joi validation, email normalization, and phone-number normalization.
+- [x] Create one pending reservation per idempotency key, calculate checkout totals on the server, and protect checkout retrieval with an unguessable access token.
+- [x] Show booking progress, apartment/stay summary, prices, fees, discounts, cancellation/payment terms, and hold expiry before payment.
+- [x] Test valid/invalid forms, malformed and missing request fields, duplicate submissions, server totals, and unauthorized booking access; run lint, typechecks, tests, and builds.
+- [x] Acceptance: guests can enter their details and reach a protected checkout with the correct server total without duplicate reservations.
 
 ## Phase 8 — Payments — Not started
 

@@ -45,6 +45,21 @@ describe('API foundation', () => {
     expect(rejected.headers['access-control-allow-origin']).toBeUndefined();
   });
 
+  it('allows the booking idempotency header during preflight', async () => {
+    const preflight = await request(app)
+      .options('/api/v1/bookings')
+      .set('Origin', 'http://localhost:3000')
+      .set('Access-Control-Request-Method', 'POST')
+      .set(
+        'Access-Control-Request-Headers',
+        'authorization, content-type, idempotency-key',
+      );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-headers']).toContain(
+      'Idempotency-Key',
+    );
+  });
+
   it('limits API requests', async () => {
     const limitedApp = createApp({
       ...validateEnvironment({

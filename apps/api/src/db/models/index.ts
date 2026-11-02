@@ -14,6 +14,8 @@ import {
   ContactInquiry,
   InventoryClaim,
   PaymentTransaction,
+  PaymentWebhookEvent,
+  PaymentStateEvent,
 } from './reservations.js';
 
 Apartment.belongsToMany(Amenity, {
@@ -71,6 +73,8 @@ Booking.hasMany(PaymentTransaction, {
   foreignKey: 'bookingId',
   as: 'paymentTransactions',
 });
+PaymentTransaction.hasMany(PaymentStateEvent, { foreignKey: 'paymentTransactionId', as: 'stateEvents' });
+PaymentStateEvent.belongsTo(PaymentTransaction, { foreignKey: 'paymentTransactionId', as: 'paymentTransaction' });
 PaymentTransaction.belongsTo(Booking, {
   foreignKey: 'bookingId',
   as: 'booking',
@@ -123,4 +127,6 @@ export {
   Guest,
   InventoryClaim,
   PaymentTransaction,
+  PaymentWebhookEvent,
+  PaymentStateEvent,
 };

@@ -48,11 +48,31 @@ export const loginLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'login');
 export const passwordRecoveryLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'password-recovery');
-export const bookingCreationLimiter = (configuration: AppEnvironment) =>
-  createSensitiveLimiter(configuration, 'booking-creation');
+export const bookingCreationLimiter = (
+  configuration: AppEnvironment,
+  storeFactory = configuredStoreFactory,
+) => createSensitiveLimiter(configuration, 'booking-creation', storeFactory);
 export const paymentInitializationLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'payment-initialization');
 export const administrativeLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'administrative');
 export const publicInquiryLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'public-inquiry');
+
+export const apartmentCatalogLimiter = (
+  configuration: AppEnvironment,
+  storeFactory = configuredStoreFactory,
+) =>
+  rateLimit({
+    windowMs: configuration.RATE_LIMIT_WINDOW_MS,
+    limit: Math.min(
+      configuration.RATE_LIMIT_MAX,
+      configuration.RATE_LIMIT_APARTMENT_MAX,
+    ),
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    ...(storeFactory
+      ? { store: storeFactory('rate-limit:apartment-catalog:') }
+      : {}),
+    message: { error: { code: 'RATE_LIMITED', message: 'Too many requests' } },
+  });

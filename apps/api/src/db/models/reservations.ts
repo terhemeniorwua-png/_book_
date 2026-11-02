@@ -58,6 +58,44 @@ export const Booking = sequelize.define(
       field: 'payment_status',
     },
     expiresAt: { type: DataTypes.DATE, allowNull: true, field: 'expires_at' },
+    idempotencyKeyHash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      unique: true,
+      field: 'idempotency_key_hash',
+    },
+    accessTokenHash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      unique: true,
+      field: 'access_token_hash',
+    },
+    requestFingerprint: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      field: 'request_fingerprint',
+    },
+    specialRequests: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'special_requests',
+    },
+    termsAcceptedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'terms_accepted_at',
+    },
+    termsVersion: {
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: 'terms_version',
+    },
+    acceptedPolicySnapshot: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {},
+      field: 'accepted_policy_snapshot',
+    },
   },
   { tableName: 'bookings', underscored: true, paranoid: true },
 );
@@ -84,6 +122,9 @@ export const PaymentTransaction = sequelize.define(
       unique: true,
       field: 'provider_transaction_id',
     },
+    idempotencyKeyHash: { type: DataTypes.STRING(64), allowNull: true, unique: true, field: 'idempotency_key_hash' },
+    authorizationUrl: { type: DataTypes.TEXT, allowNull: true, field: 'authorization_url' },
+    providerEventId: { type: DataTypes.STRING(64), allowNull: true, unique: true, field: 'provider_event_id' },
     expectedAmount: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
@@ -109,6 +150,32 @@ export const PaymentTransaction = sequelize.define(
     },
   },
   { tableName: 'payment_transactions', underscored: true, paranoid: true },
+);
+
+export const PaymentWebhookEvent = sequelize.define(
+  'PaymentWebhookEvent',
+  {
+    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    eventHash: { type: DataTypes.STRING(64), allowNull: false, unique: true, field: 'event_hash' },
+    eventType: { type: DataTypes.STRING(80), allowNull: false, field: 'event_type' },
+    transactionReference: { type: DataTypes.STRING(120), allowNull: true, field: 'transaction_reference' },
+    processingStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'received', field: 'processing_status' },
+    processedAt: { type: DataTypes.DATE, allowNull: true, field: 'processed_at' },
+  },
+  { tableName: 'payment_webhook_events', underscored: true, timestamps: true, updatedAt: false },
+);
+
+export const PaymentStateEvent = sequelize.define(
+  'PaymentStateEvent',
+  {
+    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    paymentTransactionId: { type: DataTypes.UUID, allowNull: false, field: 'payment_transaction_id' },
+    previousStatus: { type: DataTypes.STRING(20), allowNull: true, field: 'previous_status' },
+    nextStatus: { type: DataTypes.STRING(20), allowNull: false, field: 'next_status' },
+    source: { type: DataTypes.STRING(24), allowNull: false },
+    metadata: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
+  },
+  { tableName: 'payment_state_events', underscored: true, timestamps: true, updatedAt: false },
 );
 
 export const BookingStatusEvent = sequelize.define(
