@@ -57,6 +57,10 @@ const apartmentAttributes = [
   'createdAt',
 ] as const;
 
+function isSeededStockPhoto(objectKey: string) {
+  return objectKey.startsWith('https://images.unsplash.com/');
+}
+
 function amenitiesInclude(slugs: string[] = []): IncludeOptions {
   return {
     model: Amenity,
@@ -183,6 +187,8 @@ function orderFor(sort: CatalogFilters['sort']): Order {
 }
 
 export async function signApartmentImage(objectKey: string): Promise<string | null> {
+  // Seeded stock photography is served directly; the URL fragment is ignored by HTTP.
+  if (isSeededStockPhoto(objectKey)) return objectKey;
   if (!s3 || !env.S3_BUCKET) return null;
   return getSignedUrl(
     s3,

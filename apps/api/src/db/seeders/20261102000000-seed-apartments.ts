@@ -15,6 +15,7 @@ type SeedApartment = {
   region: string;
   addressLine1: string;
   amenities: string[];
+  images?: { url: string; altText: string }[];
 };
 
 const id = (number: number) =>
@@ -493,6 +494,402 @@ const apartmentRows: SeedApartment[] = [
       'kitchen',
     ],
   },
+  {
+    id: id(25),
+    slug: 'lekki-shoreline-studio',
+    name: 'Lekki Shoreline Studio',
+    shortDescription:
+      'A light-filled studio with a comfortable sleeping area, compact kitchen and room to work between outings.',
+    fullDescription:
+      'Designed as a calm city base, this sample studio pairs a bright open-plan living area with a practical kitchenette and a dedicated work surface. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 48000,
+    bedrooms: 0,
+    bathrooms: 1,
+    maxGuests: 2,
+    displayLocation: 'Lekki Phase 1, Lagos',
+    locality: 'Lekki Phase 1',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Lekki Phase 1',
+    amenities: ['wifi', 'air-conditioning', 'kitchen', 'security'],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative bright studio living area with natural light and plants',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative modern bedroom with white bedding and glass doors',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative apartment lounge with a neutral sofa and framed art',
+      },
+    ],
+  },
+  {
+    id: id(26),
+    slug: 'ikoyi-palm-one-bedroom',
+    name: 'Ikoyi Palm One Bedroom',
+    shortDescription:
+      'A contemporary one-bedroom layout with a separate lounge, fitted kitchen and a quiet place to recharge.',
+    fullDescription:
+      'The sample one-bedroom plan offers a separate lounge and bedroom, with a fitted kitchen for easy everyday meals. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 95000,
+    bedrooms: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    displayLocation: 'Ikoyi, Lagos',
+    locality: 'Ikoyi',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Ikoyi',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'kitchen',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative contemporary apartment lounge with large windows',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative serene bedroom with warm wood details',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative open-plan living and dining area',
+      },
+    ],
+  },
+  {
+    id: id(27),
+    slug: 'oniru-grove-two-bedroom',
+    name: 'Oniru Grove Two Bedroom',
+    shortDescription:
+      'A stylish two-bedroom apartment with a generous shared living area for relaxed evenings and easy meals.',
+    fullDescription:
+      'This sample two-bedroom apartment is arranged around a welcoming lounge and dining space, with room for friends or family to settle in. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 145000,
+    bedrooms: 2,
+    bathrooms: 2,
+    maxGuests: 4,
+    displayLocation: 'Oniru, Lagos',
+    locality: 'Oniru',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Oniru',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative two-bedroom apartment living room in soft neutral tones',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative contemporary dining space beside a bright kitchen',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative bedroom with warm wood and a neatly made bed',
+      },
+    ],
+  },
+  {
+    id: id(28),
+    slug: 'eko-heights-penthouse',
+    name: 'Eko Heights Penthouse',
+    shortDescription:
+      'A spacious penthouse concept with an airy lounge, considered finishes and room to unwind above the city.',
+    fullDescription:
+      'The sample penthouse pairs a generous lounge with two bedrooms and a private outdoor seating area. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 325000,
+    bedrooms: 2,
+    bathrooms: 2,
+    maxGuests: 4,
+    displayLocation: 'Victoria Island, Lagos',
+    locality: 'Victoria Island',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Victoria Island',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+      'pool',
+      'gym',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative spacious penthouse lounge with floor-to-ceiling windows',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative airy lounge with broad windows and natural light',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative modern home exterior and landscaped approach',
+      },
+    ],
+  },
+  {
+    id: id(29),
+    slug: 'wuse-central-serviced-apartment',
+    name: 'Wuse Central Serviced Apartment',
+    shortDescription:
+      'A modern serviced-apartment concept with a comfortable lounge, equipped kitchen and practical work space.',
+    fullDescription:
+      'Set up for a convenient city stay, this sample serviced apartment combines a separate bedroom with a comfortable lounge and practical kitchen. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 78000,
+    bedrooms: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    displayLocation: 'Wuse 2, Abuja',
+    locality: 'Wuse 2',
+    region: 'Abuja',
+    addressLine1: 'Sample address, Wuse 2',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative serviced apartment lounge with a comfortable sofa',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative bright living room with contemporary furnishings',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative modern bathroom with a freestanding bathtub',
+      },
+    ],
+  },
+  {
+    id: id(30),
+    slug: 'maitama-courtyard-family-apartment',
+    name: 'Maitama Courtyard Family Apartment',
+    shortDescription:
+      'An elegant family-apartment concept with multiple bedrooms, a generous dining area and room for everyone.',
+    fullDescription:
+      'This sample family apartment offers three bedrooms and a shared lounge and dining area for time together. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 210000,
+    bedrooms: 3,
+    bathrooms: 2,
+    maxGuests: 6,
+    displayLocation: 'Maitama, Abuja',
+    locality: 'Maitama',
+    region: 'Abuja',
+    addressLine1: 'Sample address, Maitama',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative family-sized living and dining room',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative bright family lounge with a dining area',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative dining space in a contemporary home',
+      },
+    ],
+  },
+  {
+    id: id(31),
+    slug: 'yaba-lightline-city-apartment',
+    name: 'Yaba Lightline City Apartment',
+    shortDescription:
+      'A minimalist city-apartment concept with an uncluttered layout, soft natural light and a dedicated work corner.',
+    fullDescription:
+      'A simple, efficient sample apartment for city stays, with a calm lounge, useful desk and compact kitchen. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 58000,
+    bedrooms: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    displayLocation: 'Yaba, Lagos',
+    locality: 'Yaba',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Yaba',
+    amenities: ['wifi', 'air-conditioning', 'kitchen', 'security'],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600210491369-e753d80a41f3?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative minimalist city apartment with neutral furnishings',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative restful bedroom with natural light',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative clean-lined lounge in a neutral palette',
+      },
+    ],
+  },
+  {
+    id: id(32),
+    slug: 'vi-executive-residence',
+    name: 'Victoria Island Executive Residence',
+    shortDescription:
+      'A premium executive-apartment concept with refined interiors, a separate bedroom and a comfortable work area.',
+    fullDescription:
+      'Made for a focused and comfortable sample city stay, the apartment pairs a separate bedroom with a polished lounge and work surface. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 185000,
+    bedrooms: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    displayLocation: 'Victoria Island, Lagos',
+    locality: 'Victoria Island',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Victoria Island',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+      'gym',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative executive bedroom with crisp bedding and glass doors',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative refined bedroom with warm natural materials',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative executive lounge with a low-profile sofa',
+      },
+    ],
+  },
+  {
+    id: id(33),
+    slug: 'ikoyi-skyline-balcony-apartment',
+    name: 'Ikoyi Skyline Balcony Apartment',
+    shortDescription:
+      'A modern apartment concept with a private balcony, broad city-facing windows and an easy indoor-outdoor feel.',
+    fullDescription:
+      'The sample two-bedroom layout includes a private balcony and wide windows for a bright, open feel. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 168000,
+    bedrooms: 2,
+    bathrooms: 2,
+    maxGuests: 4,
+    displayLocation: 'Ikoyi, Lagos',
+    locality: 'Ikoyi',
+    region: 'Lagos',
+    addressLine1: 'Sample address, Ikoyi',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+      'balcony',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative apartment with large windows and a bright dining space',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative lounge opening toward large windows',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative airy living space with an expansive glass frontage',
+      },
+    ],
+  },
+  {
+    id: id(34),
+    slug: 'asokoro-grand-residence',
+    name: 'Asokoro Grand Residence',
+    shortDescription:
+      'A spacious luxury-apartment concept with premium interiors, generous gathering space and a full kitchen.',
+    fullDescription:
+      'This sample three-bedroom residence brings together a large lounge, dining area and thoughtfully planned sleeping spaces. This is an illustrative demo listing: stock photography is used and property details, address, amenities and availability must be confirmed before travel.',
+    nightlyPrice: 265000,
+    bedrooms: 3,
+    bathrooms: 3,
+    maxGuests: 6,
+    displayLocation: 'Asokoro, Abuja',
+    locality: 'Asokoro',
+    region: 'Abuja',
+    addressLine1: 'Sample address, Asokoro',
+    amenities: [
+      'wifi',
+      'air-conditioning',
+      'backup-power',
+      'parking',
+      'security',
+      'kitchen',
+      'pool',
+      'gym',
+    ],
+    images: [
+      {
+        url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative spacious modern luxury home exterior',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1400&q=82',
+        altText:
+          'Illustrative luxury living room with warm wood and generous windows',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82',
+        altText: 'Illustrative spacious dining room and contemporary kitchen',
+      },
+    ],
+  },
 ];
 
 const amenityRows = [
@@ -504,6 +901,7 @@ const amenityRows = [
   ['kitchen', 'Kitchen', 'kitchen'],
   ['pool', 'Swimming pool', 'pool'],
   ['gym', 'Gym', 'fitness'],
+  ['balcony', 'Balcony', 'balcony'],
 ].map(([slug, name, iconKey], index) => ({
   id: id(100 + index),
   slug,
@@ -549,19 +947,37 @@ const blockRows = [
   deleted_at: null,
 }));
 
-const seedImageRows = apartmentRows.map((apartment, index) => ({
-  id: id(300 + index),
-  apartment_id: apartment.id,
-  object_key: `PLACEHOLDER_REPLACE_WITH_UPLOADED_IMAGE/${apartment.slug}/cover.jpg`,
-  alt_text: `Placeholder image for ${apartment.name}; replace with an approved property photograph`,
-  position: 0,
-  is_cover: true,
-  // Placeholder object keys are intentionally excluded from public results until real files are uploaded.
-  is_published: false,
-  created_at: createdAt,
-  updated_at: createdAt,
-  deleted_at: null,
-}));
+const seedImageRows = apartmentRows.flatMap((apartment, index) =>
+  apartment.images?.length
+    ? apartment.images.map((image, position) => ({
+        id: id(500 + (index - 20) * apartment.images!.length + position),
+        apartment_id: apartment.id,
+        // Fragments make the unique DB key property-specific and are not sent to Unsplash.
+        object_key: `${image.url}#staywell-${apartment.slug}-${position}`,
+        alt_text: image.altText,
+        position,
+        is_cover: position === 0,
+        is_published: true,
+        created_at: createdAt,
+        updated_at: createdAt,
+        deleted_at: null,
+      }))
+    : [
+        {
+          id: id(300 + index),
+          apartment_id: apartment.id,
+          object_key: `PLACEHOLDER_REPLACE_WITH_UPLOADED_IMAGE/${apartment.slug}/cover.jpg`,
+          alt_text: `Placeholder image for ${apartment.name}; replace with an approved property photograph`,
+          position: 0,
+          is_cover: true,
+          // Legacy demo placeholders remain unpublished until approved photos are uploaded.
+          is_published: false,
+          created_at: createdAt,
+          updated_at: createdAt,
+          deleted_at: null,
+        },
+      ],
+);
 
 const apartmentRecords = apartmentRows.map((apartment) => ({
   id: apartment.id,
@@ -591,7 +1007,7 @@ const apartmentRecords = apartmentRows.map((apartment) => ({
     'Placeholder policy: confirm check-out details with the property owner.',
   cancellation_policy:
     'Placeholder policy: confirm cancellation terms before booking.',
-  created_at: createdAt,
+  created_at: apartment.images ? new Date(createdAt.getTime() + 1) : createdAt,
   updated_at: createdAt,
   deleted_at: null,
 }));

@@ -7,7 +7,7 @@ export function displayPrice(value: string | number, currency: string) {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount < 0) return null;
   try {
-    return new Intl.NumberFormat('en', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
