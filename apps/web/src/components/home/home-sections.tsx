@@ -6,33 +6,52 @@ export function HeroSection() {
   return (
     <section
       id="home"
-      className="relative isolate mx-auto grid min-h-[600px] max-w-[1320px] scroll-mt-20 items-center gap-10 overflow-hidden px-5 pb-16 pt-12 sm:px-8 md:min-h-[640px] md:grid-cols-[0.9fr_1.1fr] md:gap-4 md:py-16 lg:px-12 lg:pb-20"
+      className="relative isolate flex min-h-[calc(100svh-77px)] w-full scroll-mt-20 items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-8 sm:py-20"
     >
-      <div className="relative z-10 max-w-2xl pb-5 md:pb-0">
-        <p className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-forest/15 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-forest">
-          <span className="size-1.5 rounded-full bg-[#c6a36b]" /> Your stay,
+      <Image
+        src="/images/illustrative-living-room.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        aria-hidden="true"
+        className="-z-20 object-cover object-center"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-gradient-to-br from-ink/70 via-forest/55 to-forest/65"
+      />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center">
+        <p className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white backdrop-blur-sm">
+          <span className="size-1.5 rounded-full bg-[#e8d7b5]" /> Your stay,
           your comfort
         </p>
-        <h1 className="font-display text-[2.6rem] leading-[1.05] tracking-[-0.035em] text-ink sm:text-5xl lg:text-6xl">
+        <h1 className="font-display text-[2.6rem] leading-[1.05] tracking-[-0.035em] text-white sm:text-5xl lg:text-6xl">
           Stay Somewhere Special.
         </h1>
-        <p className="mt-7 max-w-lg text-base leading-7 text-muted sm:text-lg sm:leading-8">
+        <p className="mt-7 max-w-2xl text-base leading-7 text-white/90 sm:text-lg sm:leading-8">
           Discover thoughtfully selected apartments designed to make every stay
           comfortable, convenient and memorable.
         </p>
-        <div className="mt-9 flex flex-wrap items-center gap-3">
-          <ButtonLink href="/apartments">Explore apartments</ButtonLink>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <ButtonLink
+            href="/apartments"
+            className="focus-visible:ring-2 focus-visible:ring-white"
+          >
+            Explore apartments
+          </ButtonLink>
           <a
             href="#about"
-            className="inline-flex min-h-12 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-ink transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest"
+            className="inline-flex min-h-12 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Learn more <span aria-hidden="true">↓</span>
           </a>
         </div>
-        <div className="mt-12 flex items-center gap-3 text-xs text-muted">
+        <div className="mt-12 flex items-center justify-center gap-3 text-left text-xs text-white/90">
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-full bg-[#e8d7b5] text-forest"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[#e8d7b5]"
           >
             <svg viewBox="0 0 24 24" fill="none" className="size-4">
               <path
@@ -45,7 +64,7 @@ export function HeroSection() {
             </svg>
           </span>
           <span>
-            <strong className="font-semibold text-ink">
+            <strong className="font-semibold text-white">
               Thoughtful from the start
             </strong>
             <br />
@@ -53,41 +72,9 @@ export function HeroSection() {
           </span>
         </div>
       </div>
-
-      <div className="relative mx-auto aspect-square w-full max-w-[680px] md:aspect-[4/3] md:max-w-none">
-        <div className="absolute -right-5 top-2 size-24 rounded-full bg-[#e8d7b5] sm:right-3 sm:size-32" />
-        <div className="absolute bottom-0 left-0 right-2 top-5 overflow-hidden rounded-[2rem] sm:bottom-4 sm:left-8 sm:top-0 sm:rounded-[2.5rem]">
-          <Image
-            src="/images/illustrative-living-room.jpg"
-            alt="Illustrative interior: a calm living space with soft neutral textures"
-            fill
-            priority
-            sizes="(max-width: 768px) 92vw, 52vw"
-            className="object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-forest/55 via-transparent to-transparent" />
-          <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-3 sm:inset-x-8 sm:bottom-8">
-            <div className="max-w-[240px] rounded-2xl border border-white/35 bg-white/85 p-4 shadow-lg backdrop-blur-md sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-forest">
-                A place to settle in
-              </p>
-              <p className="mt-2 font-display text-xl leading-tight text-ink sm:text-2xl">
-                Make room for what matters.
-              </p>
-            </div>
-            <span className="rounded-full bg-ink/45 px-3 py-2 text-[9px] font-medium text-white backdrop-blur">
-              Illustrative image · Unsplash
-            </span>
-          </div>
-        </div>
-        <div className="absolute -left-1 top-12 hidden max-w-[150px] rounded-2xl bg-[#e8d7b5] px-5 py-4 shadow-sm sm:block md:left-0 md:top-16">
-          <span className="block font-display text-3xl text-forest">01</span>
-          <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-forest/75">
-            Find your fit
-          </span>
-        </div>
-      </div>
-      <div className="pointer-events-none absolute -bottom-24 -left-24 -z-10 size-72 rounded-full bg-[#e8e2d3]/70 blur-3xl" />
+      <span className="absolute bottom-4 right-5 rounded-full bg-ink/45 px-3 py-2 text-[9px] font-medium text-white backdrop-blur sm:bottom-6 sm:right-8">
+        Illustrative image · Unsplash
+      </span>
     </section>
   );
 }

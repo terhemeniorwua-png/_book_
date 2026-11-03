@@ -17,6 +17,7 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": [
+    ".next-e2e/types/**/*.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "src/**/*.ts",

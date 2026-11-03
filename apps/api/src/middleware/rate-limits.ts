@@ -44,8 +44,10 @@ const createSensitiveLimiter = (
 // Attach the relevant limiter at the route when each feature is introduced.
 export const sensitiveLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'sensitive');
-export const loginLimiter = (configuration: AppEnvironment) =>
-  createSensitiveLimiter(configuration, 'login');
+export const loginLimiter = (
+  configuration: AppEnvironment,
+  storeFactory = configuredStoreFactory,
+) => createSensitiveLimiter(configuration, 'login', storeFactory);
 export const passwordRecoveryLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'password-recovery');
 export const bookingCreationLimiter = (

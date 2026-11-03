@@ -157,6 +157,14 @@ export function validateEnvironment(
     throw new Error(
       'Invalid environment configuration: PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL',
     );
+  if (value.NODE_ENV === 'production' && !value.DB_SSL)
+    throw new Error(
+      'Invalid environment configuration: DB_SSL must be enabled in production',
+    );
+  if (value.NODE_ENV === 'production' && !value.REDIS_URL)
+    throw new Error(
+      'Invalid environment configuration: REDIS_URL is required in production for shared rate limits',
+    );
   if (
     value.NODE_ENV === 'production' &&
     [value.PAYSTACK_CALLBACK_URL, value.PAYSTACK_WEBHOOK_URL].some(
@@ -193,6 +201,13 @@ export function validateEnvironment(
       throw new Error('Invalid environment configuration: CORS_ORIGINS');
     return checked as string;
   });
+  if (
+    value.NODE_ENV === 'production' &&
+    validatedOrigins.some((item) => !item.startsWith('https://'))
+  )
+    throw new Error(
+      'Invalid environment configuration: CORS_ORIGINS must use HTTPS in production',
+    );
   return { ...value, CORS_ORIGIN_LIST: validatedOrigins } as AppEnvironment;
 }
 

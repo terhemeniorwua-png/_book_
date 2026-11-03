@@ -29,7 +29,7 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     const { createMigrator } = await import('./migrate.js');
     const migrator = createMigrator(db);
     await migrator.up();
-    await migrator.down({ step: 6 });
+    await migrator.down({ step: 7 });
     await migrator.up();
     models = await import('./models/index.js');
   }, 60_000);
@@ -52,6 +52,10 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     expect(models.Booking.associations.paymentTransactions).toBeDefined();
     expect(models.PaymentTransaction.associations.stateEvents).toBeDefined();
     expect(models.PaymentWebhookEvent).toBeDefined();
+    expect(models.AdminAccount.associations.sessions).toBeDefined();
+    expect(models.AdminAccount.associations.auditEvents).toBeDefined();
+    await expect(models.AdminSession.build({}).validate()).rejects.toThrow();
+    await expect(models.AdminAuditEvent.build({}).validate()).rejects.toThrow();
     await expect(models.Apartment.build({}).validate()).rejects.toThrow();
 
     const indexes = (await db
@@ -125,6 +129,56 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
         { transaction },
       ),
     ).rejects.toThrow();
+  });
+
+  it('creates administrator sessions and durable audit rows with indexed token hashes', async () => {
+    const admin = await models.AdminAccount.create(
+      {
+        email: `session-${crypto.randomUUID()}@example.test`,
+        passwordHash: 'test-only-placeholder-hash',
+        displayName: 'Test operator',
+        role: 'manager',
+      },
+      { transaction },
+    );
+    const session = await models.AdminSession.create(
+      {
+        adminAccountId: admin.get('id'),
+        tokenHash: createHash('sha256')
+          .update(crypto.randomUUID())
+          .digest('hex'),
+        csrfTokenHash: createHash('sha256')
+          .update(crypto.randomUUID())
+          .digest('hex'),
+        expiresAt: new Date(Date.now() + 60_000),
+        lastSeenAt: new Date(),
+      },
+      { transaction },
+    );
+    const audit = await models.AdminAuditEvent.create(
+      {
+        adminAccountId: admin.get('id'),
+        action: 'test.apartment_update',
+        targetType: 'apartment',
+        targetId: crypto.randomUUID(),
+        metadata: { changedFields: ['name'] },
+      },
+      { transaction },
+    );
+    expect(session.get('adminAccountId')).toBe(admin.get('id'));
+    expect(audit.get('metadata')).toEqual({ changedFields: ['name'] });
+    const indexes = (await db
+      .getQueryInterface()
+      .showIndex('admin_sessions', { transaction })) as Array<{
+      name: string;
+      unique?: boolean;
+    }>;
+    expect(
+      indexes.some(
+        (index) =>
+          index.name === 'admin_sessions_token_hash_uq' && index.unique,
+      ),
+    ).toBe(true);
   });
 
   it('limits public apartment queries to published listings', async () => {

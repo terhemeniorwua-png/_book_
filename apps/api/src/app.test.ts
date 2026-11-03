@@ -60,6 +60,91 @@ describe('API foundation', () => {
     );
   });
 
+  it('allows credentialed administrator CORS and the CSRF request header', async () => {
+    const preflight = await request(app)
+      .options('/api/v1/admin/auth/logout')
+      .set('Origin', 'http://localhost:3000')
+      .set('Access-Control-Request-Method', 'POST')
+      .set('Access-Control-Request-Headers', 'content-type,x-csrf-token');
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-credentials']).toBe('true');
+    expect(preflight.headers['access-control-allow-headers']).toContain(
+      'X-CSRF-Token',
+    );
+  });
+
+  it('protects admin data endpoints and validates login requests before authentication', async () => {
+    const protectedResponse = await request(app).get('/api/v1/admin/dashboard');
+    expect(protectedResponse.status).toBe(401);
+    expect(protectedResponse.body.error.code).toBe('ADMIN_AUTH_REQUIRED');
+
+    const invalidLogin = await request(app)
+      .post('/api/v1/admin/auth/login')
+      .send({
+        email: 'admin@example.test',
+        password: 'long-enough-password',
+        role: 'superadmin',
+      });
+    expect(invalidLogin.status).toBe(400);
+    expect(invalidLogin.body.error.code).toBe('VALIDATION_ERROR');
+    const publicRegistration = await request(app)
+      .post('/api/v1/admin/auth/register')
+      .send({ email: 'admin@example.test', password: 'long-password-value' });
+    expect(publicRegistration.status).toBe(401);
+    expect(publicRegistration.body.error.code).toBe('ADMIN_AUTH_REQUIRED');
+  });
+
+  it('requires administrator authorization across inventory, booking, payment, and audit endpoints', async () => {
+    const responses = await Promise.all([
+      request(app).get('/api/v1/admin/apartments'),
+      request(app).post('/api/v1/admin/apartments').send({}),
+      request(app).get(
+        '/api/v1/admin/availability/calendar?from=2027-01-01&to=2027-02-01',
+      ),
+      request(app).post('/api/v1/admin/availability/blocks').send({}),
+      request(app).get('/api/v1/admin/bookings'),
+      request(app).get('/api/v1/admin/payments'),
+      request(app).get('/api/v1/admin/audit'),
+    ]);
+    expect(responses.map((response) => response.status)).toEqual(
+      Array(responses.length).fill(401),
+    );
+    expect(responses.map((response) => response.body.error.code)).toEqual(
+      Array(responses.length).fill('ADMIN_AUTH_REQUIRED'),
+    );
+  });
+
+  it('rate limits administrator login attempts before password verification', async () => {
+    const limitedApp = createApp({
+      ...validateEnvironment({
+        DATABASE_URL: 'postgres://user:pass@localhost/db',
+        RATE_LIMIT_SENSITIVE_MAX: '1',
+      }),
+      NODE_ENV: 'test',
+    });
+    const path = '/api/v1/admin/auth/login';
+    const first = await request(limitedApp)
+      .post(path)
+      .send({ email: 'invalid', password: 'short' });
+    const blocked = await request(limitedApp)
+      .post(path)
+      .send({ email: 'invalid', password: 'short' });
+    expect(first.status).toBe(400);
+    expect(blocked.status).toBe(429);
+  });
+
+  it('requires a valid CSRF token before administrator mutations', async () => {
+    const response = await request(app)
+      .post('/api/v1/admin/availability/blocks')
+      .send({
+        apartmentId: 'f410a7e3-7aa0-4fb7-a4af-794c85a85bfe',
+        startDate: '2027-01-01',
+        endDate: '2027-01-03',
+        reason: 'Planned maintenance',
+      });
+    expect(response.status).toBe(401);
+  });
+
   it('limits API requests', async () => {
     const limitedApp = createApp({
       ...validateEnvironment({
@@ -157,6 +242,9 @@ describe('API foundation', () => {
       validateEnvironment({
         NODE_ENV: 'production',
         DATABASE_URL: 'postgres://user:pass@localhost/db',
+        DB_SSL: 'true',
+        REDIS_URL: 'redis://localhost:6379',
+        CORS_ORIGINS: 'https://site.example',
         PAYSTACK_SECRET_KEY: 'sk_test_private',
         PAYSTACK_PUBLIC_KEY: 'pk_test_public',
         PAYSTACK_CALLBACK_URL: 'https://site.example/booking/payment/callback',
@@ -168,10 +256,42 @@ describe('API foundation', () => {
       validateEnvironment({
         NODE_ENV: 'production',
         DATABASE_URL: 'postgres://user:pass@localhost/db',
+        DB_SSL: 'true',
+        REDIS_URL: 'redis://localhost:6379',
+        CORS_ORIGINS: 'https://site.example',
       }),
     ).toThrow(
       'PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PAYSTACK_CALLBACK_URL, PAYSTACK_WEBHOOK_URL',
     );
+  });
+
+  it('requires encrypted database transport and shared rate limits in production', () => {
+    const baseline = {
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgres://user:pass@localhost/db',
+      REDIS_URL: 'redis://localhost:6379',
+      CORS_ORIGINS: 'https://site.example',
+      PAYSTACK_SECRET_KEY: 'sk_live_private',
+      PAYSTACK_PUBLIC_KEY: 'pk_live_public',
+      PAYSTACK_CALLBACK_URL: 'https://site.example/booking/payment/callback',
+      PAYSTACK_WEBHOOK_URL:
+        'https://api.example/api/v1/payments/paystack/webhook',
+    };
+    expect(() => validateEnvironment(baseline)).toThrow('DB_SSL');
+    expect(() =>
+      validateEnvironment({
+        ...baseline,
+        DB_SSL: 'true',
+        REDIS_URL: undefined,
+      }),
+    ).toThrow('REDIS_URL');
+    expect(() =>
+      validateEnvironment({
+        ...baseline,
+        DB_SSL: 'true',
+        CORS_ORIGINS: 'http://site.example',
+      }),
+    ).toThrow('CORS_ORIGINS must use HTTPS');
   });
 
   it('applies a stricter payment-initialization limiter', async () => {

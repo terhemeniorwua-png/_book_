@@ -1,0 +1,24 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index ec1981d9a738ecf28d63190e27506ff0e600bf79..c12bd57d747e8ef508def4dae02bf4b3a213afec 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -1509,4 +1509,6 @@ Object.defineProperty(exports, "unescape", { enumerable: true, get: function ()
+ exports.minimatch.Minimatch = Minimatch;
+ exports.minimatch.escape = escape_js_1.escape;
+ exports.minimatch.unescape = unescape_js_1.unescape;
++// Preserve the callable CommonJS shape used by older minimatch consumers.
++module.exports = Object.assign(exports.minimatch, exports);
+ //# sourceMappingURL=index.js.map
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index ab804c2db6951836630594a59844233756d3957c..e8fe8648cf56f4c482e4cec7bdbcc63c1adc606e 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -11,6 +11,8 @@ export const minimatch = (p, pattern, options = {}) => {
+     }
+     return new Minimatch(pattern, options).match(p);
+ };
++// Keep compatibility with dependencies that still use a default import.
++export default minimatch;
+ /* c8 ignore start */
+ const defaultPlatform = (typeof process === 'object' && process ?
+     process.env?.__MINIMATCH_TESTING_PLATFORM__ || process.platform

@@ -486,6 +486,53 @@ export function verificationMatches(
   );
 }
 
+async function markPaymentForManualReview(
+  reference: string,
+  source: string,
+  metadata: RecordLike = {},
+) {
+  await sequelize.transaction(async (transaction) => {
+    const payment = await PaymentTransaction.findOne({
+      where: { transactionReference: reference, provider: 'paystack' },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!payment) return;
+    const paymentData = payment.get({ plain: true }) as RecordLike;
+    const booking = await Booking.findByPk(String(paymentData.bookingId), {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (
+      !booking ||
+      ['succeeded', 'refunded'].includes(String(paymentData.status))
+    )
+      return;
+    const previousStatus = String(paymentData.status);
+    if (previousStatus !== 'needs_review') {
+      await payment.update(
+        {
+          status: 'needs_review',
+          verifiedAt: new Date(),
+          processedAt: new Date(),
+        },
+        { transaction },
+      );
+      await PaymentStateEvent.create(
+        {
+          paymentTransactionId: paymentData.id,
+          previousStatus,
+          nextStatus: 'needs_review',
+          source,
+          metadata,
+        },
+        { transaction },
+      );
+    }
+    await booking.update({ paymentStatus: 'manual_review' }, { transaction });
+  });
+}
+
 export async function verifyPaymentForBooking(
   reference: string,
   bookingReference: string,
@@ -529,46 +576,7 @@ export async function verifyPaymentForBooking(
       String(bookingData.guest?.email ?? ''),
     )
   ) {
-    await sequelize.transaction(async (transaction) => {
-      const locked = await PaymentTransaction.findByPk(String(initialData.id), {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      const lockedBooking = await Booking.findByPk(String(bookingData.id), {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (
-        locked &&
-        lockedBooking &&
-        locked.get('status') !== 'succeeded' &&
-        locked.get('status') !== 'refunded'
-      ) {
-        const previousStatus = String(locked.get('status'));
-        await locked.update(
-          {
-            status: 'needs_review',
-            verifiedAt: new Date(),
-            processedAt: new Date(),
-          },
-          { transaction },
-        );
-        await PaymentStateEvent.create(
-          {
-            paymentTransactionId: locked.get('id'),
-            previousStatus,
-            nextStatus: 'needs_review',
-            source: 'verification_mismatch',
-            metadata: {},
-          },
-          { transaction },
-        );
-        await lockedBooking.update(
-          { paymentStatus: 'manual_review' },
-          { transaction },
-        );
-      }
-    });
+    await markPaymentForManualReview(reference, 'verification_mismatch');
     throw new PaymentError(
       409,
       'PAYMENT_MISMATCH',
@@ -877,12 +885,16 @@ export async function handlePaystackWebhook(
       data.currency.toUpperCase() ===
         String(paymentData.currency).toUpperCase() &&
       data.domain === (env.NODE_ENV === 'production' ? 'live' : 'test');
-    if (!matches)
-      throw new PaymentError(
-        409,
-        'PAYMENT_NOT_VERIFIED',
-        'Refund event could not be matched to the verified payment.',
-      );
+    if (!matches) {
+      await markPaymentForManualReview(reference, 'refund_event_mismatch', {
+        refundEvent: eventType,
+      });
+      await eventRow.update({
+        processingStatus: 'processed',
+        processedAt: new Date(),
+      });
+      return { duplicate: false, processed: true, reviewRequired: true };
+    }
     await sequelize.transaction(async (transaction) => {
       const lockedPayment = await PaymentTransaction.findByPk(
         String(paymentData.id),
@@ -988,12 +1000,17 @@ export async function handlePaystackWebhook(
   if (
     !verificationMatches(verified, p, String(bookingData.guest?.email ?? '')) ||
     verified.status !== 'success'
-  )
-    throw new PaymentError(
-      409,
-      'PAYMENT_NOT_VERIFIED',
-      'Webhook transaction could not be independently verified.',
+  ) {
+    await markPaymentForManualReview(
+      reference,
+      'webhook_verification_mismatch',
     );
+    await eventRow.update({
+      processingStatus: 'processed',
+      processedAt: new Date(),
+    });
+    return { duplicate: false, processed: true, reviewRequired: true };
+  }
   await processVerifiedTransaction(reference, verified, client);
   await eventRow.update({
     processingStatus: 'processed',
@@ -1049,38 +1066,10 @@ export async function reconcileStalePayments(
         !b ||
         !verificationMatches(provider, p, String(b.guest?.email ?? ''))
       ) {
-        await sequelize.transaction(async (transaction) => {
-          const current = await PaymentTransaction.findByPk(String(p.id), {
-            transaction,
-            lock: transaction.LOCK.UPDATE,
-          });
-          const currentBooking = await Booking.findByPk(String(p.bookingId), {
-            transaction,
-            lock: transaction.LOCK.UPDATE,
-          });
-          if (!current || !currentBooking) return;
-          const previousStatus = String(current.get('status'));
-          if (previousStatus !== 'needs_review') {
-            await current.update(
-              { status: 'needs_review', verifiedAt: new Date(), processedAt: new Date() },
-              { transaction },
-            );
-            await PaymentStateEvent.create(
-              {
-                paymentTransactionId: current.get('id'),
-                previousStatus,
-                nextStatus: 'needs_review',
-                source: 'reconciliation_mismatch',
-                metadata: {},
-              },
-              { transaction },
-            );
-          }
-          await currentBooking.update(
-            { paymentStatus: 'manual_review' },
-            { transaction },
-          );
-        });
+        await markPaymentForManualReview(
+          String(p.transactionReference),
+          'reconciliation_mismatch',
+        );
         results.push({
           reference: String(p.transactionReference),
           status: 'needs_review',

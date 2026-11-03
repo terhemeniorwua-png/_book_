@@ -1,4 +1,9 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import Joi from 'joi';
 import {
@@ -186,7 +191,9 @@ function orderFor(sort: CatalogFilters['sort']): Order {
   ];
 }
 
-export async function signApartmentImage(objectKey: string): Promise<string | null> {
+export async function signApartmentImage(
+  objectKey: string,
+): Promise<string | null> {
   // Seeded stock photography is served directly; the URL fragment is ignored by HTTP.
   if (isSeededStockPhoto(objectKey)) return objectKey;
   if (!s3 || !env.S3_BUCKET) return null;
@@ -194,6 +201,32 @@ export async function signApartmentImage(objectKey: string): Promise<string | nu
     s3,
     new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: objectKey }),
     { expiresIn: 300 },
+  );
+}
+
+export async function uploadApartmentImage(
+  objectKey: string,
+  body: Buffer,
+  contentType: string,
+) {
+  if (!s3 || !env.S3_BUCKET)
+    throw new Error('Image storage is not configured.');
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: objectKey,
+      Body: body,
+      ContentType: contentType,
+      CacheControl: 'private, max-age=300',
+    }),
+  );
+}
+
+export async function deleteApartmentImageObject(objectKey: string) {
+  if (!s3 || !env.S3_BUCKET)
+    throw new Error('Image storage is not configured.');
+  await s3.send(
+    new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: objectKey }),
   );
 }
 

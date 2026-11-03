@@ -15,6 +15,8 @@ function PolicyContent({ value }: { value: string | null }) {
       before booking.
     </p>
   );
+
+
 }
 
 export default async function ApartmentDetailsPage({

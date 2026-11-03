@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { apartmentsRouter } from './apartments.routes.js';
 import { bookingsRouter } from './bookings.routes.js';
 import { paymentsRouter } from './payments.routes.js';
+import { adminRouter } from './admin.routes.js';
 
 export const apiRouter = Router();
 apiRouter.get('/', (_request, response) =>
@@ -10,3 +11,4 @@ apiRouter.get('/', (_request, response) =>
 apiRouter.use('/apartments', apartmentsRouter);
 apiRouter.use('/bookings', bookingsRouter);
 apiRouter.use('/payments', paymentsRouter);
+apiRouter.use('/admin', adminRouter);

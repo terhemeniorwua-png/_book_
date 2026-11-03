@@ -40,6 +40,81 @@ export const AdminAccount = sequelize.define(
   { tableName: 'admin_accounts', underscored: true, paranoid: true },
 );
 
+export const AdminSession = sequelize.define(
+  'AdminSession',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    adminAccountId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: 'admin_account_id',
+    },
+    tokenHash: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
+      unique: true,
+      field: 'token_hash',
+    },
+    csrfTokenHash: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
+      field: 'csrf_token_hash',
+    },
+    expiresAt: { type: DataTypes.DATE, allowNull: false, field: 'expires_at' },
+    lastSeenAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'last_seen_at',
+    },
+    revokedAt: { type: DataTypes.DATE, allowNull: true, field: 'revoked_at' },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: 'created_at',
+    },
+  },
+  { tableName: 'admin_sessions', underscored: true, timestamps: false },
+);
+
+export const AdminAuditEvent = sequelize.define(
+  'AdminAuditEvent',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    adminAccountId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'admin_account_id',
+    },
+    action: { type: DataTypes.STRING(80), allowNull: false },
+    targetType: {
+      type: DataTypes.STRING(40),
+      allowNull: false,
+      field: 'target_type',
+    },
+    targetId: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+      field: 'target_id',
+    },
+    metadata: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
+  },
+  {
+    tableName: 'admin_audit_events',
+    underscored: true,
+    timestamps: true,
+    updatedAt: false,
+  },
+);
+
 export const Apartment = sequelize.define(
   'Apartment',
   {

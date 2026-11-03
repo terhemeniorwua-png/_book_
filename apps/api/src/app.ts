@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { pinoHttp } from 'pino-http';
 import { env, type AppEnvironment } from './config/env.js';
 import { logger } from './logger.js';
+import { sequelize } from './db/client.js';
 import { apiRouter } from './routes/v1/index.js';
 import {
   generalLimiter,
@@ -12,6 +13,7 @@ import {
   bookingCreationLimiter,
   paymentInitializationLimiter,
   paymentVerificationLimiter,
+  loginLimiter,
   setRateLimitStoreFactory,
   type RateLimitStoreFactory,
 } from './middleware/rate-limits.js';
@@ -57,6 +59,34 @@ const safeBookingErrorMessages: Record<string, string> = {
   INVALID_WEBHOOK: 'Webhook payload is invalid.',
   PAYMENT_NOT_VERIFIED:
     'Webhook transaction could not be independently verified.',
+  ADMIN_LOGIN_FAILED: 'Email or password is incorrect.',
+  ADMIN_AUTH_REQUIRED: 'Administrator authentication is required.',
+  ADMIN_CSRF_INVALID:
+    'Request security token is invalid. Refresh the dashboard and try again.',
+  ADMIN_CSRF_UNAVAILABLE:
+    'Administrator security token is missing. Sign in again.',
+  ADMIN_FORBIDDEN:
+    'This administrator is not authorized to perform this action.',
+  ADMIN_RESOURCE_NOT_FOUND:
+    'The requested administrator resource was not found.',
+  APARTMENT_SLUG_EXISTS: 'An apartment with this slug already exists.',
+  BOOKING_TRANSITION_INVALID:
+    'This booking cannot be moved to the requested state.',
+  BOOKING_NOT_PAID:
+    'Only a confirmed, verified-paid booking can be checked in.',
+  BOOKING_PAYMENT_REVIEW_REQUIRED:
+    'This booking has payment activity and requires cancellation/refund review.',
+  REFUND_REQUIRES_CANCELLED_BOOKING:
+    'Cancel the reservation before requesting a refund.',
+  VERIFIED_PAYMENT_REQUIRED:
+    'A verified, refundable Paystack payment was not found.',
+  REFUND_PROVIDER_PENDING:
+    'The refund request could not be confirmed. Its status remains pending; check Paystack before retrying.',
+  INVALID_IMAGE: 'Upload a valid JPEG, PNG, or WebP image up to 8 MB.',
+  IMAGE_STORAGE_UNAVAILABLE:
+    'Image storage is not configured or is temporarily unavailable.',
+  UNKNOWN_AMENITY: 'One or more selected amenities do not exist.',
+  AMENITY_SLUG_EXISTS: 'An amenity with this slug already exists.',
 };
 
 export const errorHandler: ErrorRequestHandler = (
@@ -183,13 +213,14 @@ export function createApp(
           }),
         );
       },
-      credentials: false,
+      credentials: true,
       methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
         'Authorization',
         'Idempotency-Key',
         'X-Request-Id',
+        'X-CSRF-Token',
       ],
       maxAge: 600,
     }),
@@ -221,9 +252,21 @@ export function createApp(
     '/api/v1/payments/verify',
     paymentVerificationLimiter(configuration, rateLimitStoreFactory),
   );
+  application.use(
+    '/api/v1/admin/auth/login',
+    loginLimiter(configuration, rateLimitStoreFactory),
+  );
   application.get('/health', (_request, response) =>
     response.json({ status: 'ok' }),
   );
+  application.get('/ready', async (_request, response) => {
+    try {
+      await sequelize.authenticate();
+      response.json({ status: 'ready' });
+    } catch {
+      response.status(503).json({ status: 'not_ready' });
+    }
+  });
   application.use('/api/v1', apiRouter);
   application.use((_request, response) =>
     response

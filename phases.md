@@ -74,10 +74,17 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [ ] Run migrations and reservation/payment concurrency tests against the dedicated `TEST_DATABASE_URL`, and complete a Paystack sandbox webhook/callback round trip before declaring acceptance complete.
 - [ ] Acceptance: secrets remain server-side; duplicate, invalid, delayed, refund, and successful payment events are verified against the provider and the isolated PostgreSQL integration suite passes.
 
-## Phase 9 — Customer and administration — Not started
+## Phase 9 — Administrator dashboard — In progress
 
-- [ ] Implement customer reservation history and secured administrative apartment, availability, pricing, and reservation management.
-- [ ] Acceptance: API authorization is tested for each role and customer data is isolated.
+- [x] Add Argon2id administrator login with no registration endpoint, opaque hashed database sessions, an eight-hour expiry, secure HttpOnly/SameSite cookies, CSRF verification, logout revocation, and strict login limits.
+- [x] Add admin session and audit migrations, session cleanup on login, audit history, and a one-time provision command already available from Phase 3.
+- [x] Add protected and Joi-validated APIs for overview, apartment and amenity management, image uploads, availability blocks/calendar, searchable paginated bookings, payment visibility, audit events, booking transitions, and superadmin-only full refunds through Paystack.
+- [x] Preserve inventory exclusion enforcement for blocked dates and booking state transitions; keep payment state separate from booking cancellation and never set payments to paid from the dashboard.
+- [x] Add the responsive administrator login and dashboard UI for overview, apartments, photos, booking search/cancellation, availability blocks, payments/refunds, and audit history.
+- [x] Add API auth/CORS/input tests and database migration/session/audit integration tests.
+- [x] Verify the administrator route authorization boundary, absent public registration route, and login rate limiter with API tests; add controls for amenity assignment/creation and apartment image publication, cover selection, and removal.
+- [ ] Run the migration and database integration suite against a dedicated PostgreSQL test instance; only unit/API/frontend checks are available without `TEST_DATABASE_URL` pointing to a reachable disposable database.
+- [ ] Acceptance: verify full apartment, booking, availability, payment, authorization, and audit workflows against the dedicated test database and deployment cookie/CORS domains.
 
 ## Phase 10 — Hardening and release — Not started
 

@@ -89,9 +89,17 @@ describe('Paystack client and webhook signatures', () => {
   });
 
   it('rejects malformed transaction references before provider verification', () => {
-    expect(paymentReferenceSchema.validate({ reference: 'valid_ref-123' }).error).toBeUndefined();
-    expect(paymentReferenceSchema.validate({ reference: 'https://attacker.test' }).error).toBeDefined();
-    expect(paymentReferenceSchema.validate({ reference: 'ref-123', extra: true }).error).toBeDefined();
+    expect(
+      paymentReferenceSchema.validate({ reference: 'valid_ref-123' }).error,
+    ).toBeUndefined();
+    expect(
+      paymentReferenceSchema.validate({ reference: 'https://attacker.test' })
+        .error,
+    ).toBeDefined();
+    expect(
+      paymentReferenceSchema.validate({ reference: 'ref-123', extra: true })
+        .error,
+    ).toBeDefined();
   });
 
   it('verifies the HMAC-SHA512 against the exact raw request bytes', () => {
@@ -169,13 +177,22 @@ describe('Paystack client and webhook signatures', () => {
   });
 
   it('handles a failed Paystack verification response without returning provider details', async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
-      status: false,
-      message: 'Private account detail',
-      data: null,
-    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: false,
+          message: 'Private account detail',
+          data: null,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
     const client = createPaystackClient('sk_test_private', fetcher);
-    await expect(client.verify('valid_reference')).rejects.toMatchObject({ code: 'PAYMENT_PROVIDER_REJECTED' });
-    expect(String(fetcher.mock.calls[0]?.[0])).toContain('/transaction/verify/valid_reference');
+    await expect(client.verify('valid_reference')).rejects.toMatchObject({
+      code: 'PAYMENT_PROVIDER_REJECTED',
+    });
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain(
+      '/transaction/verify/valid_reference',
+    );
   });
 });

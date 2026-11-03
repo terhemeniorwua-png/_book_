@@ -34,3 +34,9 @@ Run the browser smoke test with `pnpm test:e2e`. Install its browser once with `
 Database migrations run with `pnpm db:migrate` and roll back the most recent migration with `pnpm db:migrate:undo`. Migrations require a reachable PostgreSQL database configured in `apps/api/.env`.
 
 For coding and security conventions see [agent.md](./agent.md). Environment variable templates are maintained per application in `apps/api/.env.example` and `apps/web/.env.example`.
+
+## Administrator dashboard
+
+Provision the first administrator using the API's interactive, one-time command: `pnpm --filter @apartment/api db:provision-admin`. It requires a unique administrator email and prompts for a password; there is no public registration route. Visit `/admin/login` after starting the apps. Administrator sessions are stored as token hashes in PostgreSQL, expire after eight hours, and use an HttpOnly `SameSite=Strict` cookie (Secure in production) plus a CSRF token for dashboard requests. Configure the exact website origin in API `CORS_ORIGINS`; credentialed API requests are restricted to that allowlist. Refund requests are full refunds, restricted to `superadmin`, submitted through Paystack, and left in `refund_pending` until provider verification completes.
+
+Apply the new schema using the normal forward-only deployment migration command `pnpm --filter @apartment/api db:migrate`. The migration adds administrator sessions and audit events; it does not drop application records. Before deploying, run the API and web checks and the database integration suite against a disposable PostgreSQL database using `TEST_DATABASE_URL`.

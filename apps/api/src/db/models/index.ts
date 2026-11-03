@@ -1,5 +1,7 @@
 import {
   AdminAccount,
+  AdminSession,
+  AdminAuditEvent,
   Amenity,
   Apartment,
   ApartmentAmenity,
@@ -23,6 +25,23 @@ Apartment.belongsToMany(Amenity, {
   foreignKey: 'apartmentId',
   otherKey: 'amenityId',
   as: 'amenities',
+});
+AdminAccount.hasMany(AdminSession, {
+  foreignKey: 'adminAccountId',
+  as: 'sessions',
+  onDelete: 'CASCADE',
+});
+AdminSession.belongsTo(AdminAccount, {
+  foreignKey: 'adminAccountId',
+  as: 'admin',
+});
+AdminAccount.hasMany(AdminAuditEvent, {
+  foreignKey: 'adminAccountId',
+  as: 'auditEvents',
+});
+AdminAuditEvent.belongsTo(AdminAccount, {
+  foreignKey: 'adminAccountId',
+  as: 'admin',
 });
 Amenity.belongsToMany(Apartment, {
   through: ApartmentAmenity,
@@ -121,6 +140,8 @@ Apartment.hasMany(InventoryClaim, {
 
 export {
   AdminAccount,
+  AdminSession,
+  AdminAuditEvent,
   Amenity,
   Apartment,
   ApartmentAmenity,

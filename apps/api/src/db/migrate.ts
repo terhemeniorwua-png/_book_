@@ -9,6 +9,7 @@ import * as inventoryExclusionAndAudit from './migrations/20261102000300-add-inv
 import * as apartmentPolicies from './migrations/20261102000400-add-apartment-policies.js';
 import * as bookingAccessAndCheckoutData from './migrations/20261102000500-add-booking-access-and-checkout-data.js';
 import * as paystackIntegrity from './migrations/20261102000600-add-paystack-integrity.js';
+import * as adminSessionsAndAudit from './migrations/20261102000700-create-admin-sessions-and-audit.js';
 
 export function createMigrator(sequelize: Sequelize = defaultSequelize) {
   return new Umzug({
@@ -42,6 +43,11 @@ export function createMigrator(sequelize: Sequelize = defaultSequelize) {
         name: '20261102000600-add-paystack-integrity',
         up: paystackIntegrity.up,
         down: paystackIntegrity.down,
+      },
+      {
+        name: '20261102000700-create-admin-sessions-and-audit',
+        up: adminSessionsAndAudit.up,
+        down: adminSessionsAndAudit.down,
       },
     ],
     context: sequelize.getQueryInterface(),
