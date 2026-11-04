@@ -359,19 +359,21 @@ export async function getPublicApartment(slug: string) {
 }
 
 export const apartmentListQuerySchema = Joi.object({
-  minPrice: Joi.number().min(0).max(1_000_000_000),
-  maxPrice: Joi.number().min(0).max(1_000_000_000),
-  bedrooms: Joi.number().integer().min(0).max(30),
-  guests: Joi.number().integer().min(1).max(50),
-  location: Joi.string().trim().min(1).max(120),
-  q: Joi.string().trim().min(1).max(100),
+  minPrice: Joi.number().empty('').min(0).max(1_000_000_000),
+  maxPrice: Joi.number().empty('').min(0).max(1_000_000_000),
+  bedrooms: Joi.number().empty('').integer().min(0).max(30),
+  guests: Joi.number().empty('').integer().min(1).max(50),
+  location: Joi.string().empty('').trim().min(1).max(120),
+  q: Joi.string().empty('').trim().min(1).max(100),
   amenities: Joi.string()
+    .empty('')
     .trim()
     .max(800)
     .pattern(/^[a-z0-9-]+(?:,[a-z0-9-]+){0,9}$/i),
   page: Joi.number().integer().min(1).max(100_000).default(1),
   limit: Joi.number().integer().min(1).max(24).default(12),
   sort: Joi.string()
+    .empty('')
     .valid('newest', 'price_asc', 'price_desc', 'name')
     .default('newest'),
 })
