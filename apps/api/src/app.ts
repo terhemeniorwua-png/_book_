@@ -132,6 +132,9 @@ export const errorHandler: ErrorRequestHandler = (
     {
       requestId: response.locals.requestId,
       errorName: error instanceof Error ? error.name : 'UnknownError',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      originalMessage: (error as { original?: { message?: string } })?.original?.message,
+      originalCode: (error as { original?: { code?: string } })?.original?.code,
     },
     'Request failed',
   );
