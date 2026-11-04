@@ -242,11 +242,11 @@ export async function initializePayment(
   let callbackUrl = env.PAYSTACK_CALLBACK_URL;
   try {
     const result = await sequelize.transaction(async (transaction) => {
-      const booking = (await Booking.findOne({
+        const booking = (await Booking.findOne({
         where: { bookingReference },
         include: [{ model: Guest, as: 'guest' }],
         transaction,
-        lock: transaction.LOCK.UPDATE,
+        lock: { level: transaction.LOCK.UPDATE, of: Booking },
       })) as Model | null;
       const bookingData = booking?.get({ plain: true }) as
         | (RecordLike & { guest?: RecordLike })
