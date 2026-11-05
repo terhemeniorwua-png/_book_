@@ -496,7 +496,8 @@ export function verificationMatches(
 ) {
   return (
     provider.reference === payment.transactionReference &&
-    provider.domain === (env.NODE_ENV === 'production' ? 'live' : 'test') &&
+    provider.domain ===
+  (String(env.PAYSTACK_SECRET_KEY).startsWith('sk_live_') ? 'live' : 'test') &&
     provider.amount ===
       toPaystackMinorUnits(payment.expectedAmount as string | number) &&
     provider.currency.toUpperCase() ===

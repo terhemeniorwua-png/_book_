@@ -225,6 +225,20 @@ export function validateEnvironment(
       throw new Error('Invalid environment configuration: CORS_ORIGINS');
     return checked as string;
   });
+  if (hasPaystackKey) {
+  const secretMode = String(value.PAYSTACK_SECRET_KEY ?? '').startsWith('sk_live_') ? 'live' : 'test';
+  const mode = value.PAYSTACK_PUBLIC_KEY
+    ? (String(value.PAYSTACK_PUBLIC_KEY).startsWith('pk_live_') ? 'live' : 'test')
+    : secretMode;
+  if (
+    (value.PAYSTACK_SECRET_KEY && !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${secretMode}_`)) ||
+    (value.PAYSTACK_PUBLIC_KEY && !String(value.PAYSTACK_PUBLIC_KEY).startsWith(`pk_${secretMode}_`)) ||
+    mode !== secretMode
+  )
+    throw new Error(
+      `Invalid environment configuration: Paystack keys must both be ${secretMode} mode`,
+    );
+}
   if (
     value.NODE_ENV === 'production' &&
     validatedOrigins.some((item) => !item.startsWith('https://'))
