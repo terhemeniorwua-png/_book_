@@ -161,7 +161,7 @@ export function validateEnvironment(
     value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY,
   );
   if (hasPaystackKey) {
-    const mode = value.NODE_ENV === 'production' ? 'live' : 'test';
+    const mode = value.NODE_ENV === 'production' ? 'test' : 'test';
     if (
       (value.PAYSTACK_SECRET_KEY &&
         !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`)) ||
