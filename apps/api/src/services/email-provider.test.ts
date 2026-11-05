@@ -27,10 +27,11 @@ describe('email provider delivery', () => {
       );
     const result = await deliverEmail(message, fetcher, configuration);
     expect(result).toEqual({
-      delivered: true,
+      accepted: true,
       retryable: false,
       errorCode: null,
       providerMessageId: 'email_123',
+      providerStatus: 200,
       attempts: 2,
     });
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -51,9 +52,10 @@ describe('email provider delivery', () => {
       .mockResolvedValue(new Response('', { status: 400 }));
     const result = await deliverEmail(message, fetcher, configuration);
     expect(result).toMatchObject({
-      delivered: false,
+      accepted: false,
       retryable: false,
-      errorCode: 'EMAIL_PROVIDER_REJECTED',
+      errorCode: 'EMAIL_PROVIDER_400',
+      providerStatus: 400,
       attempts: 1,
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -65,9 +67,10 @@ describe('email provider delivery', () => {
       .mockResolvedValue(new Response('', { status: 503 }));
     const result = await deliverEmail(message, fetcher, configuration);
     expect(result).toMatchObject({
-      delivered: false,
+      accepted: false,
       retryable: true,
-      errorCode: 'EMAIL_PROVIDER_UNAVAILABLE',
+      errorCode: 'EMAIL_PROVIDER_503',
+      providerStatus: 503,
       attempts: 2,
     });
     expect(fetcher).toHaveBeenCalledTimes(2);

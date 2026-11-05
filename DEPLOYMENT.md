@@ -70,10 +70,14 @@ See Paystack's [receipt preferences](https://support.paystack.com/en/articles/21
 Staywell email uses the existing API adapter, defaulting to
 `https://api.resend.com/emails`. Set `EMAIL_PROVIDER_API_URL`,
 `EMAIL_PROVIDER_API_KEY`, and `EMAIL_FROM_ADDRESS` in the API deployment
-environment to enable delivery; `SUPPORT_EMAIL_ADDRESS` is optional. Email
-events are deduplicated in PostgreSQL and transient provider errors are retried
-once using the same provider idempotency key. Keep these values out of the web
-deployment and source-controlled environment files.
+environment to enable provider submission; `SUPPORT_EMAIL_ADDRESS` is optional.
+Email events are deduplicated in PostgreSQL and transient provider errors are
+retried once using the same provider idempotency key. Structured API logs record
+dispatch attempts and provider acceptance/rejection without recipient addresses
+or secrets. Provider acceptance does not establish inbox delivery: verify
+delivery, bounce, suppression, sender-domain verification, and spam results in
+the provider dashboard. Keep these values out of the web deployment and
+source-controlled environment files.
 
 ## Build, start, migrate
 

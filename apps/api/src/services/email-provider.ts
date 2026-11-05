@@ -9,10 +9,11 @@ export type ProviderEmailMessage = {
 };
 
 export type DeliveryResult = {
-  delivered: boolean;
+  accepted: boolean;
   retryable: boolean;
   errorCode: string | null;
   providerMessageId: string | null;
+  providerStatus: number | null;
   attempts: number;
 };
 
@@ -33,10 +34,11 @@ export async function deliverEmail(
 ): Promise<DeliveryResult> {
   if (!configuration.apiKey || !configuration.fromAddress)
     return {
-      delivered: false,
+      accepted: false,
       retryable: true,
       errorCode: 'EMAIL_PROVIDER_NOT_CONFIGURED',
       providerMessageId: null,
+      providerStatus: null,
       attempts: 0,
     };
 
@@ -63,41 +65,43 @@ export async function deliverEmail(
           id?: unknown;
         } | null;
         return {
-          delivered: true,
+          accepted: true,
           retryable: false,
           errorCode: null,
           providerMessageId:
             typeof payload?.id === 'string' ? payload.id.slice(0, 160) : null,
+          providerStatus: response.status,
           attempts: attempt + 1,
         };
       }
       const retryable = response.status >= 500 || response.status === 429;
       if (retryable && attempt === 0) continue;
       return {
-        delivered: false,
+        accepted: false,
         retryable,
-        errorCode: retryable
-          ? 'EMAIL_PROVIDER_UNAVAILABLE'
-          : 'EMAIL_PROVIDER_REJECTED',
+        errorCode: `EMAIL_PROVIDER_${response.status}`,
         providerMessageId: null,
+        providerStatus: response.status,
         attempts: attempt + 1,
       };
     } catch {
       if (attempt === 0) continue;
       return {
-        delivered: false,
+        accepted: false,
         retryable: true,
         errorCode: 'EMAIL_PROVIDER_UNAVAILABLE',
         providerMessageId: null,
+        providerStatus: null,
         attempts: attempt + 1,
       };
     }
   }
   return {
-    delivered: false,
+    accepted: false,
     retryable: true,
     errorCode: 'EMAIL_PROVIDER_UNAVAILABLE',
     providerMessageId: null,
+    providerStatus: null,
     attempts: 0,
   };
 }

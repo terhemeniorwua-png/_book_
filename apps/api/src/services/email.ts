@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { Op } from 'sequelize';
 import { env } from '../config/env.js';
 import { sequelize } from '../db/client.js';
+import { logger } from '../logger.js';
 import {
   AdminAccount,
   Apartment,
@@ -181,22 +182,52 @@ async function sendAndRecord(
   });
   if (!record) return;
 
+  logger.info(
+    { event: 'email_dispatch_attempted', notificationId: record.get('id'), type },
+    'Email dispatch attempted',
+  );
   const delivery = await deliverEmail({
     ...message,
     idempotencyKey: deduplicationKey,
   });
   await record.update({
-    status: delivery.delivered
+    status: delivery.accepted
       ? 'sent'
       : delivery.retryable
         ? 'queued'
         : 'failed',
     lastError: delivery.errorCode,
-    sentAt: delivery.delivered ? new Date() : null,
+    sentAt: delivery.accepted ? new Date() : null,
     providerMessageId: delivery.providerMessageId,
     attempts:
       Number(record.get('attempts')) + Math.max(0, delivery.attempts - 1),
   });
+  if (delivery.accepted) {
+    logger.info(
+      {
+        event: 'email_provider_accepted',
+        notificationId: record.get('id'),
+        type,
+        providerStatus: delivery.providerStatus,
+        providerMessageId: delivery.providerMessageId,
+        attempts: delivery.attempts,
+      },
+      'Email provider accepted message',
+    );
+  } else {
+    logger.warn(
+      {
+        event: 'email_provider_rejected_or_unavailable',
+        notificationId: record.get('id'),
+        type,
+        errorCode: delivery.errorCode,
+        providerStatus: delivery.providerStatus,
+        retryable: delivery.retryable,
+        attempts: delivery.attempts,
+      },
+      'Email provider did not accept message',
+    );
+  }
 }
 
 async function activeAdministratorEmails() {
@@ -394,8 +425,19 @@ export async function sendBookingConfirmationEmail(
 ) {
   try {
     await sendBookingConfirmation(bookingId, cancellationToken);
-  } catch {
-    // Cancellation links and notification bodies must never be written to logs.
+  } catch (error) {
+    logger.error(
+      {
+        event: 'booking_confirmation_dispatch_failed',
+        bookingId,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        errorCode:
+          error && typeof error === 'object' && 'name' in error
+            ? String(error.name)
+            : 'UNKNOWN',
+      },
+      'Booking confirmation dispatch failed before provider acceptance',
+    );
   }
 }
 
