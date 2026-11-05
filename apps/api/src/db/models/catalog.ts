@@ -206,6 +206,16 @@ export const Apartment = sequelize.define(
       allowNull: true,
       field: 'cancellation_policy',
     },
+    timezone: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+    },
+    checkInTime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      defaultValue: '14:00:00',
+      field: 'check_in_time',
+    },
   },
   {
     tableName: 'apartments',

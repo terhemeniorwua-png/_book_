@@ -60,6 +60,33 @@ describe('API foundation', () => {
     );
   });
 
+  it('allows the cancellation token header during preflight', async () => {
+    const preflight = await request(app)
+      .options('/api/v1/cancellations/request')
+      .set('Origin', 'http://localhost:3000')
+      .set('Access-Control-Request-Method', 'GET')
+      .set('Access-Control-Request-Headers', 'x-cancellation-token');
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-headers']).toContain(
+      'X-Cancellation-Token',
+    );
+  });
+
+  it('requires a well-formed cancellation token without mutating on GET', async () => {
+    const missing = await request(app).get('/api/v1/cancellations/request');
+    expect(missing.status).toBe(400);
+    expect(missing.body.error.code).toBe('INVALID_CANCELLATION_TOKEN');
+    expect(missing.body.error.message).toBe(
+      'This cancellation link is not valid. Use the link from your booking confirmation email.',
+    );
+
+    const malformed = await request(app)
+      .get('/api/v1/cancellations/request')
+      .set('X-Cancellation-Token', 'not-a-token');
+    expect(malformed.status).toBe(400);
+    expect(malformed.body.error.code).toBe('INVALID_CANCELLATION_TOKEN');
+  });
+
   it('allows credentialed administrator CORS and the CSRF request header', async () => {
     const preflight = await request(app)
       .options('/api/v1/admin/auth/logout')

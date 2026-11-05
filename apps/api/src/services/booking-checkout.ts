@@ -12,6 +12,10 @@ import {
   Guest,
 } from '../db/models/index.js';
 import { signApartmentImage } from './apartment-catalog.js';
+import {
+  isValidTimeZone,
+  normalizeCheckInTime,
+} from './cancellation-policy.js';
 
 const MONEY_LIMIT_CENTS = 999_999_999_999n;
 const TERMS_VERSION = 'booking-terms-v1';
@@ -566,6 +570,12 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
             checkOutPolicy: property.checkOutPolicy,
             cancellationPolicy: property.cancellationPolicy,
             houseRules: property.houseRules,
+            timeZone: isValidTimeZone(property.timezone as string | null)
+              ? property.timezone
+              : env.BOOKING_TIME_ZONE,
+            checkInTime: normalizeCheckInTime(
+              property.checkInTime as string | null,
+            ),
           },
         },
         { transaction },

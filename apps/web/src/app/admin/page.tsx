@@ -14,6 +14,7 @@ type Tab =
   | 'Bookings'
   | 'Availability'
   | 'Payments'
+  | 'Refunds'
   | 'Audit';
 type Item = Record<string, unknown>;
 
@@ -79,6 +80,7 @@ export default function AdminDashboardPage() {
             Bookings: `/bookings?limit=25&page=${page}${searchTerm ? `&q=${encodeURIComponent(searchTerm)}` : ''}${bookingStatus ? `&status=${bookingStatus}` : ''}`,
             Availability: `/availability/calendar?from=${calendarFrom}&to=${calendarTo}`,
             Payments: '/payments?limit=25',
+            Refunds: '/refunds?limit=25',
             Audit: '/audit?limit=25',
           };
           const result = await adminRequest<{ items?: Item[]; item?: Item }>(
@@ -285,6 +287,38 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             )}
+          {tab === 'Refunds' &&
+            session.admin.role === 'superadmin' &&
+            row.status === 'failed' && (
+              <div className="flex items-center gap-2">
+                <input
+                  aria-label="Refund retry reason"
+                  placeholder="Reason (8+ characters)"
+                  value={actionReasons[String(row.id)] ?? ''}
+                  onChange={(event) =>
+                    setActionReasons((previous) => ({
+                      ...previous,
+                      [String(row.id)]: event.target.value,
+                    }))
+                  }
+                  className="max-w-48 rounded-lg border px-2 py-2 text-xs"
+                />
+                <button
+                  disabled={
+                    busy ||
+                    (actionReasons[String(row.id)] ?? '').trim().length < 8
+                  }
+                  onClick={() =>
+                    void act(`/refunds/${String(row.id)}/retry`, 'POST', {
+                      reason: actionReasons[String(row.id)],
+                    })
+                  }
+                  className="rounded-full border border-amber-300 px-3 py-2 text-xs font-medium"
+                >
+                  Retry refund
+                </button>
+              </div>
+            )}
           {tab === 'Availability' && row.kind === 'blocks' && (
             <button
               disabled={busy}
@@ -340,6 +374,56 @@ export default function AdminDashboardPage() {
               {String((row.guest as Item).phone)}
             </p>
           )}
+        {tab === 'Bookings' &&
+          Boolean(row.cancellation) &&
+          typeof row.cancellation === 'object' && (
+            <div className="mt-3 rounded-xl bg-stone-50 p-3 text-sm text-stone-800">
+              <p className="font-medium">Cancellation</p>
+              <p className="mt-1 text-xs leading-5">
+                Requested{' '}
+                {String((row.cancellation as Item).requestedAt ?? '—')} ·
+                Deadline {String((row.cancellation as Item).deadlineAt ?? '—')}{' '}
+                · Source {String((row.cancellation as Item).source ?? '—')}
+              </p>
+              {Boolean(row.refund) && typeof row.refund === 'object' ? (
+                <p className="mt-1 text-xs leading-5">
+                  Refund {String((row.refund as Item).status ?? '—')} ·{' '}
+                  {String((row.refund as Item).amount ?? '')}{' '}
+                  {String((row.refund as Item).currency ?? '')} · Provider ref{' '}
+                  {String(
+                    (row.refund as Item).providerRefundId ??
+                      (row.refund as Item).providerReference ??
+                      '—',
+                  )}
+                  {row.refund && (row.refund as Item).failureReason
+                    ? ` · Failure: ${String((row.refund as Item).failureReason)}`
+                    : ''}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs leading-5">No refund record.</p>
+              )}
+            </div>
+          )}
+        {tab === 'Refunds' && (
+          <div className="mt-3 rounded-xl bg-stone-50 p-3 text-sm text-stone-800">
+            <p className="text-xs leading-5">
+              Booking {String(row.bookingReference ?? '—')} · Booking status{' '}
+              {String(row.bookingStatus ?? '—')} · Payment{' '}
+              {String(row.originalPaymentReference ?? '—')} (
+              {String(row.originalPaymentStatus ?? '—')})
+            </p>
+            <p className="mt-1 text-xs leading-5">
+              Requested {String(row.cancellationRequestedAt ?? '—')} · Completed{' '}
+              {String(row.cancellationCompletedAt ?? '—')} · Attempts{' '}
+              {String(row.attempts ?? 0)}
+            </p>
+            <p className="mt-1 text-xs leading-5">
+              Provider refund ref {String(row.providerRefundId ?? '—')} ·
+              Failure {String(row.failureReason ?? 'none')} · Processed{' '}
+              {String(row.processedAt ?? '—')}
+            </p>
+          </div>
+        )}
         {Array.isArray(row.images) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {(row.images as Item[]).map((image) => (
@@ -396,6 +480,7 @@ export default function AdminDashboardPage() {
             'Bookings',
             'Availability',
             'Payments',
+            'Refunds',
             'Audit',
           ] as Tab[]
         ).map((name) => (
@@ -531,7 +616,7 @@ export default function AdminDashboardPage() {
           )}
         </section>
       )}
-      {['Bookings', 'Payments', 'Audit'].includes(tab) && (
+      {['Bookings', 'Payments', 'Refunds', 'Audit'].includes(tab) && (
         <section className="mt-6 space-y-3">
           {tab === 'Bookings' && (
             <div className="flex flex-wrap gap-3 rounded-2xl bg-white p-4">
@@ -556,6 +641,7 @@ export default function AdminDashboardPage() {
                 {[
                   'pending',
                   'confirmed',
+                  'cancellation_requested',
                   'checked_in',
                   'completed',
                   'cancelled',
@@ -636,6 +722,8 @@ function ApartmentForm({
       bathrooms: Number(data.get('bathrooms')),
       maxGuests: Number(data.get('maxGuests')),
       displayLocation: String(data.get('displayLocation')),
+      timezone: String(data.get('timezone') ?? '').trim() || null,
+      checkInTime: String(data.get('checkInTime') ?? '').trim() || null,
       minStayNights: Number(data.get('minStayNights') || 1),
       ...(String(data.get('maxStayNights') ?? '').trim()
         ? { maxStayNights: Number(data.get('maxStayNights')) }
@@ -701,6 +789,8 @@ function ApartmentForm({
           ['bathrooms', 'Bathrooms'],
           ['maxGuests', 'Maximum guests'],
           ['displayLocation', 'Display location'],
+          ['timezone', 'Timezone (IANA, optional)'],
+          ['checkInTime', 'Check-in time (HH:MM, optional)'],
           ['minStayNights', 'Minimum nights'],
           ['maxStayNights', 'Maximum nights (optional)'],
           ['feeName', 'Optional fee name'],
@@ -710,7 +800,13 @@ function ApartmentForm({
             {label}
             <input
               required={
-                !['feeName', 'feeAmount', 'maxStayNights'].includes(name)
+                ![
+                  'feeName',
+                  'feeAmount',
+                  'maxStayNights',
+                  'timezone',
+                  'checkInTime',
+                ].includes(name)
               }
               name={name}
               type={
@@ -736,7 +832,11 @@ function ApartmentForm({
                       ? 1
                       : name === 'nightlyPrice'
                         ? '25000'
-                        : ''
+                        : name === 'timezone'
+                          ? 'Africa/Lagos'
+                          : name === 'checkInTime'
+                            ? '14:00'
+                            : ''
               }
               className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2"
             />

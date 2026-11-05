@@ -14,6 +14,7 @@ const eslintConfig = [
 const completeConfig = [
   globalIgnores([
     '.next/**',
+    '.next-e2e/**',
     'node_modules/**',
     'out/**',
     'build/**',

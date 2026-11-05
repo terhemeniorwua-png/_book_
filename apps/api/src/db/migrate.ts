@@ -10,6 +10,7 @@ import * as apartmentPolicies from './migrations/20261102000400-add-apartment-po
 import * as bookingAccessAndCheckoutData from './migrations/20261102000500-add-booking-access-and-checkout-data.js';
 import * as paystackIntegrity from './migrations/20261102000600-add-paystack-integrity.js';
 import * as adminSessionsAndAudit from './migrations/20261102000700-create-admin-sessions-and-audit.js';
+import * as cancellationsRefundsAndNotifications from './migrations/20261102000800-add-cancellations-refunds-and-notifications.js';
 
 export function createMigrator(sequelize: Sequelize = defaultSequelize) {
   return new Umzug({
@@ -48,6 +49,11 @@ export function createMigrator(sequelize: Sequelize = defaultSequelize) {
         name: '20261102000700-create-admin-sessions-and-audit',
         up: adminSessionsAndAudit.up,
         down: adminSessionsAndAudit.down,
+      },
+      {
+        name: '20261102000800-add-cancellations-refunds-and-notifications',
+        up: cancellationsRefundsAndNotifications.up,
+        down: cancellationsRefundsAndNotifications.down,
       },
     ],
     context: sequelize.getQueryInterface(),

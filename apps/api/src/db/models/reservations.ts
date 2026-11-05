@@ -316,6 +316,223 @@ export const InventoryClaim = sequelize.define(
   },
 );
 
+export const BookingCancellationToken = sequelize.define(
+  'BookingCancellationToken',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    bookingId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: 'booking_id',
+    },
+    tokenHash: {
+      type: DataTypes.STRING(64),
+      allowNull: false,
+      unique: true,
+      field: 'token_hash',
+    },
+    purpose: {
+      type: DataTypes.STRING(40),
+      allowNull: false,
+      defaultValue: 'booking_cancellation',
+    },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'expires_at',
+    },
+    usedAt: { type: DataTypes.DATE, allowNull: true, field: 'used_at' },
+    revokedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'revoked_at',
+    },
+  },
+  {
+    tableName: 'booking_cancellation_tokens',
+    underscored: true,
+    timestamps: true,
+    updatedAt: false,
+  },
+);
+
+export const BookingCancellation = sequelize.define(
+  'BookingCancellation',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    bookingId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      unique: true,
+      field: 'booking_id',
+    },
+    tokenId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'token_id',
+    },
+    source: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'customer_link',
+    },
+    requestedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: 'requested_at',
+    },
+    completedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'completed_at',
+    },
+    deadlineAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'deadline_at',
+    },
+  },
+  { tableName: 'booking_cancellations', underscored: true },
+);
+
+export const BookingRefund = sequelize.define(
+  'BookingRefund',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    bookingId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      unique: true,
+      field: 'booking_id',
+    },
+    cancellationId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      unique: true,
+      field: 'cancellation_id',
+    },
+    paymentTransactionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: 'payment_transaction_id',
+    },
+    provider: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'paystack',
+    },
+    providerReference: {
+      type: DataTypes.STRING(120),
+      allowNull: false,
+      field: 'provider_reference',
+    },
+    providerRefundId: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+      unique: true,
+      field: 'provider_refund_id',
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'pending',
+    },
+    amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+    currency: { type: DataTypes.STRING(3), allowNull: false },
+    policy: {
+      type: DataTypes.STRING(48),
+      allowNull: false,
+      defaultValue: 'full_transaction_amount',
+    },
+    attempts: {
+      type: DataTypes.SMALLINT,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    failureReason: {
+      type: DataTypes.STRING(240),
+      allowNull: true,
+      field: 'failure_reason',
+    },
+    providerMetadata: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {},
+      field: 'provider_metadata',
+    },
+    requestedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      field: 'requested_at',
+    },
+    lastAttemptAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'last_attempt_at',
+    },
+    processedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'processed_at',
+    },
+  },
+  { tableName: 'booking_refunds', underscored: true },
+);
+
+export const EmailNotification = sequelize.define(
+  'EmailNotification',
+  {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
+    },
+    bookingId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'booking_id',
+    },
+    cancellationId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'cancellation_id',
+    },
+    type: { type: DataTypes.STRING(60), allowNull: false },
+    recipient: { type: DataTypes.STRING(320), allowNull: false },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'queued',
+    },
+    attempts: {
+      type: DataTypes.SMALLINT,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    lastError: {
+      type: DataTypes.STRING(240),
+      allowNull: true,
+      field: 'last_error',
+    },
+    sentAt: { type: DataTypes.DATE, allowNull: true, field: 'sent_at' },
+  },
+  { tableName: 'email_notifications', underscored: true },
+);
+
 export const ContactInquiry = sequelize.define(
   'ContactInquiry',
   {

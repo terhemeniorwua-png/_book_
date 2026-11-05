@@ -12,8 +12,12 @@ import {
 } from './catalog.js';
 import {
   Booking,
+  BookingCancellation,
+  BookingCancellationToken,
+  BookingRefund,
   BookingStatusEvent,
   ContactInquiry,
+  EmailNotification,
   InventoryClaim,
   PaymentTransaction,
   PaymentWebhookEvent,
@@ -137,6 +141,67 @@ Apartment.hasMany(InventoryClaim, {
   foreignKey: 'apartmentId',
   as: 'inventoryClaims',
 });
+Booking.hasMany(BookingCancellationToken, {
+  foreignKey: 'bookingId',
+  as: 'cancellationTokens',
+});
+BookingCancellationToken.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+  as: 'booking',
+});
+Booking.hasOne(BookingCancellation, {
+  foreignKey: 'bookingId',
+  as: 'cancellation',
+});
+BookingCancellation.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+  as: 'booking',
+});
+BookingCancellation.belongsTo(BookingCancellationToken, {
+  foreignKey: 'tokenId',
+  as: 'token',
+});
+BookingCancellationToken.hasMany(BookingCancellation, {
+  foreignKey: 'tokenId',
+  as: 'cancellations',
+});
+Booking.hasOne(BookingRefund, {
+  foreignKey: 'bookingId',
+  as: 'refund',
+});
+BookingRefund.belongsTo(Booking, { foreignKey: 'bookingId', as: 'booking' });
+BookingCancellation.hasOne(BookingRefund, {
+  foreignKey: 'cancellationId',
+  as: 'refund',
+});
+BookingRefund.belongsTo(BookingCancellation, {
+  foreignKey: 'cancellationId',
+  as: 'cancellation',
+});
+PaymentTransaction.hasOne(BookingRefund, {
+  foreignKey: 'paymentTransactionId',
+  as: 'refund',
+});
+BookingRefund.belongsTo(PaymentTransaction, {
+  foreignKey: 'paymentTransactionId',
+  as: 'payment',
+});
+Booking.hasMany(EmailNotification, {
+  foreignKey: 'bookingId',
+  as: 'emailNotifications',
+});
+EmailNotification.belongsTo(Booking, {
+  foreignKey: 'bookingId',
+  as: 'booking',
+});
+BookingCancellation.hasMany(EmailNotification, {
+  foreignKey: 'cancellationId',
+  as: 'emailNotifications',
+});
+EmailNotification.belongsTo(BookingCancellation, {
+  foreignKey: 'cancellationId',
+  as: 'cancellation',
+});
 
 export {
   AdminAccount,
@@ -149,8 +214,12 @@ export {
   ApartmentImage,
   AvailabilityBlock,
   Booking,
+  BookingCancellation,
+  BookingCancellationToken,
+  BookingRefund,
   BookingStatusEvent,
   ContactInquiry,
+  EmailNotification,
   Guest,
   InventoryClaim,
   PaymentTransaction,

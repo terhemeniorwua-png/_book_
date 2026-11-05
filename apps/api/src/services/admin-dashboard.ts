@@ -19,12 +19,15 @@ import {
   ApartmentImage,
   AvailabilityBlock,
   Booking,
+  BookingCancellation,
+  BookingRefund,
   BookingStatusEvent,
   Guest,
   PaymentStateEvent,
   PaymentTransaction,
 } from '../db/models/index.js';
 import { createPaystackClient } from './paystack.js';
+import { isValidTimeZone } from './cancellation-policy.js';
 import {
   deleteApartmentImageObject,
   uploadApartmentImage,
@@ -83,6 +86,18 @@ const commonApartment = {
   checkInPolicy: Joi.string().trim().max(2000).allow('', null),
   checkOutPolicy: Joi.string().trim().max(2000).allow('', null),
   cancellationPolicy: Joi.string().trim().max(5000).allow('', null),
+  timezone: Joi.string()
+    .trim()
+    .max(80)
+    .allow(null, '')
+    .custom((value, helpers) => {
+      if (value === null || value === '') return value;
+      return isValidTimeZone(value) ? value : helpers.error('any.invalid');
+    }),
+  checkInTime: Joi.string()
+    .trim()
+    .pattern(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/)
+    .allow(null, ''),
   amenityIds: Joi.array().items(Joi.string().uuid()).unique().max(50),
   charges: Joi.array()
     .items(
@@ -167,6 +182,7 @@ export const bookingListQuerySchema = Joi.object({
   status: Joi.string().valid(
     'pending',
     'confirmed',
+    'cancellation_requested',
     'checked_in',
     'completed',
     'cancelled',
@@ -286,6 +302,8 @@ function serializeApartment(value: Row) {
     checkInPolicy: value.checkInPolicy,
     checkOutPolicy: value.checkOutPolicy,
     cancellationPolicy: value.cancellationPolicy,
+    timezone: value.timezone,
+    checkInTime: value.checkInTime,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
     amenities: ((value.amenities ?? []) as Row[]).map((amenity) => ({
@@ -383,6 +401,8 @@ async function replaceCharges(
 
 export async function createAdminApartment(input: Row, admin: AdminContext) {
   const values = { ...input };
+  if (values.timezone === '') values.timezone = null;
+  if (values.checkInTime === '') values.checkInTime = null;
   const amenityIds = (values.amenityIds ?? []) as string[];
   const charges = (values.charges ?? []) as Row[];
   delete values.amenityIds;
@@ -420,6 +440,8 @@ export async function updateAdminApartment(
   admin: AdminContext,
 ) {
   const values = { ...input };
+  if (values.timezone === '') values.timezone = null;
+  if (values.checkInTime === '') values.checkInTime = null;
   const amenityIds = values.amenityIds as string[] | undefined;
   const charges = values.charges as Row[] | undefined;
   delete values.amenityIds;
@@ -862,6 +884,30 @@ const safeBookingIncludes: Includeable[] = [
     separate: true,
     order: [['createdAt', 'DESC']],
   },
+  {
+    model: BookingCancellation,
+    as: 'cancellation',
+    attributes: ['id', 'source', 'requestedAt', 'completedAt', 'deadlineAt'],
+  },
+  {
+    model: BookingRefund,
+    as: 'refund',
+    attributes: [
+      'id',
+      'status',
+      'amount',
+      'currency',
+      'policy',
+      'provider',
+      'providerReference',
+      'providerRefundId',
+      'failureReason',
+      'attempts',
+      'requestedAt',
+      'lastAttemptAt',
+      'processedAt',
+    ],
+  },
 ];
 
 function serializeBooking(model: Model) {
@@ -885,6 +931,8 @@ function serializeBooking(model: Model) {
     guest: value.guest,
     apartment: value.apartment,
     payments: ((value.paymentTransactions ?? []) as Row[]).map(safePayment),
+    cancellation: value.cancellation ?? null,
+    refund: value.refund ?? null,
   };
 }
 

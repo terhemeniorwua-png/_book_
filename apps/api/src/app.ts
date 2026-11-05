@@ -11,6 +11,7 @@ import {
   generalLimiter,
   apartmentCatalogLimiter,
   bookingCreationLimiter,
+  bookingCancellationLimiter,
   paymentInitializationLimiter,
   paymentVerificationLimiter,
   loginLimiter,
@@ -87,6 +88,26 @@ const safeBookingErrorMessages: Record<string, string> = {
     'Image storage is not configured or is temporarily unavailable.',
   UNKNOWN_AMENITY: 'One or more selected amenities do not exist.',
   AMENITY_SLUG_EXISTS: 'An amenity with this slug already exists.',
+  INVALID_CANCELLATION_TOKEN:
+    'This cancellation link is not valid. Use the link from your booking confirmation email.',
+  CANCELLATION_LINK_INVALID:
+    'This cancellation link is not valid. Use the link from your booking confirmation email.',
+  CANCELLATION_LINK_EXPIRED:
+    'This cancellation link has expired. Contact Staywell support for help.',
+  CANCELLATION_ALREADY_PROCESSED:
+    'This cancellation request has already been submitted. Check your email for updates.',
+  CANCELLATION_IN_PROGRESS:
+    'A cancellation request for this booking is already being processed.',
+  BOOKING_NOT_CANCELLABLE:
+    'This booking is not eligible for online cancellation. Please contact Staywell support.',
+  CHECK_IN_STARTED:
+    'The scheduled check-in time has passed, so this booking can no longer be cancelled online.',
+  CANCELLATION_DEADLINE_PASSED:
+    'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+  REFUND_NOT_FOUND: 'The refund could not be found.',
+  REFUND_NOT_RETRYABLE: 'Only a failed refund can be retried.',
+  REFUND_STATUS_UNVERIFIED:
+    'Paystack could not confirm whether the previous refund is still active. Check Paystack before retrying.',
 };
 
 export const errorHandler: ErrorRequestHandler = (
@@ -133,7 +154,8 @@ export const errorHandler: ErrorRequestHandler = (
       requestId: response.locals.requestId,
       errorName: error instanceof Error ? error.name : 'UnknownError',
       errorMessage: error instanceof Error ? error.message : String(error),
-      originalMessage: (error as { original?: { message?: string } })?.original?.message,
+      originalMessage: (error as { original?: { message?: string } })?.original
+        ?.message,
       originalCode: (error as { original?: { code?: string } })?.original?.code,
     },
     'Request failed',
@@ -224,6 +246,7 @@ export function createApp(
         'Idempotency-Key',
         'X-Request-Id',
         'X-CSRF-Token',
+        'X-Cancellation-Token',
       ],
       maxAge: 600,
     }),
@@ -246,6 +269,10 @@ export function createApp(
   application.use(
     '/api/v1/bookings',
     bookingCreationLimiter(configuration, rateLimitStoreFactory),
+  );
+  application.use(
+    '/api/v1/cancellations',
+    bookingCancellationLimiter(configuration, rateLimitStoreFactory),
   );
   application.use(
     '/api/v1/payments/bookings',

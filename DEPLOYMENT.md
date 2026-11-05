@@ -36,6 +36,8 @@ production credentials into Git.
 | API     | `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`                                                     | Optional matching test keys                | Mocked by E2E; sandbox keys only for staging round-trip                                                                      | Required matching live keys in secret manager                                       |
 | API     | `PAYSTACK_CALLBACK_URL`, `PAYSTACK_WEBHOOK_URL`                                                  | Optional local/test URLs                   | Mocked by E2E                                                                                                                | Required HTTPS callback and exact registered webhook URLs                           |
 | API     | `PAYSTACK_CURRENCY`, `PAYMENT_RECONCILIATION_AGE_MINUTES`                                        | Defaults to NGN/30                         | Defaults                                                                                                                     | NGN only; set reconciliation age for operations                                     |
+| API     | `CUSTOMER_APP_URL`                                                                               | Web origin used in email links             | Playwright origin if email delivery is exercised                                                                             | Canonical HTTPS web origin; no trailing path                                        |
+| API     | `EMAIL_PROVIDER_API_URL`, `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM_ADDRESS`                         | Optional; blank keeps notifications queued | Optional; mocked or omitted                                                                                                  | Set all three to enable guest and active-administrator transactional email delivery |
 | API     | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`                                                          | Optional; blank disables uploads           | Optional                                                                                                                     | Optional; use private bucket and workload identity                                  |
 | API     | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                                                       | Optional local credentials                 | Optional                                                                                                                     | Prefer provider workload identity; if keys are unavoidable, store in secret manager |
 | API     | `LOG_LEVEL`                                                                                      | Defaults to `info`                         | Defaults to `info`                                                                                                           | `info`/`warn`, JSON logs sent to hosting collector                                  |
@@ -48,11 +50,14 @@ No session signing secret is required: administrator session tokens are
 cryptographically random, stored only as hashes, and CSRF tokens are bound to
 the database session. `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are
 only needed temporarily for the one-time provisioning command; inject them
-from a secret manager or protected shell, then remove them. There is no email
-provider integration or email-related environment variable. There is no
-monitoring SDK or monitoring secret; structured JSON logs go to stdout/stderr
-for collection by the hosting platform. Add an email or monitoring integration
-as a separately reviewed feature before relying on it operationally.
+from a secret manager or protected shell, then remove them. Transactional
+email is optional: when `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM_ADDRESS`, and
+`EMAIL_PROVIDER_API_URL` are configured, booking, cancellation, and refund
+messages are delivered through that HTTPS provider endpoint; otherwise
+notification rows remain `queued`. There is no monitoring SDK or monitoring
+secret; structured JSON logs go to stdout/stderr for collection by the hosting
+platform. Add a monitoring integration as a separately reviewed feature before
+relying on it operationally.
 
 ## Build, start, migrate
 

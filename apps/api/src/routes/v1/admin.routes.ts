@@ -47,6 +47,13 @@ import {
   requestAdminRefund,
   listAdminAuditEvents,
 } from '../../services/admin-dashboard.js';
+import {
+  listAdminRefunds,
+  refundIdParamsSchema,
+  refundListQuerySchema,
+  refundRetrySchema,
+  retryCancellationRefund,
+} from '../../services/booking-cancellation.js';
 
 export const adminRouter = Router();
 adminRouter.use((_request, response, next) => {
@@ -410,6 +417,40 @@ adminRouter.get(
     try {
       response.json({
         item: await listAdminPayments(request.query as Record<string, unknown>),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+adminRouter.get(
+  '/refunds',
+  validateRequest({ query: refundListQuerySchema }),
+  async (request, response, next) => {
+    try {
+      response.json({
+        item: await listAdminRefunds(request.query as Record<string, unknown>),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+adminRouter.post(
+  '/refunds/:refundId/retry',
+  requireAdminRole('superadmin'),
+  validateRequest({
+    params: refundIdParamsSchema,
+    body: refundRetrySchema,
+  }),
+  async (request, response, next) => {
+    try {
+      response.json({
+        item: await retryCancellationRefund(
+          String(request.params.refundId),
+          request.body.reason,
+          response.locals.admin as { id: string; role: string },
+        ),
       });
     } catch (error) {
       next(error);

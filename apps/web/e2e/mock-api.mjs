@@ -63,6 +63,11 @@ const bookings = new Map();
 const idempotency = new Map();
 let bookingAttempts = 0;
 let paymentAttempts = 0;
+let cancellationConfirms = 0;
+let cancellationState = 'active';
+const cancellationToken = 'A'.repeat(43);
+const ineligibleCancellationToken = 'B'.repeat(43);
+const expiredCancellationToken = 'C'.repeat(43);
 
 function send(response, status, body) {
   response.writeHead(status, {
@@ -70,7 +75,7 @@ function send(response, status, body) {
     'cache-control': 'no-store',
     'access-control-allow-origin': '*',
     'access-control-allow-headers':
-      'authorization,content-type,idempotency-key',
+      'authorization,content-type,idempotency-key,x-cancellation-token',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
   });
   response.end(body === undefined ? '' : JSON.stringify(body));
@@ -91,6 +96,8 @@ const server = createServer(async (request, response) => {
     idempotency.clear();
     bookingAttempts = 0;
     paymentAttempts = 0;
+    cancellationConfirms = 0;
+    cancellationState = 'active';
     return send(response, 204);
   }
   if (url.pathname === '/__test/state')
@@ -98,6 +105,8 @@ const server = createServer(async (request, response) => {
       bookingAttempts,
       paymentAttempts,
       bookings: bookings.size,
+      cancellationConfirms,
+      cancellationState,
     });
 
   const base = '/api/v1';
@@ -317,6 +326,111 @@ const server = createServer(async (request, response) => {
     booking.paymentStatus = 'paid';
     return send(response, 200, {
       item: { status: 'succeeded', bookingStatus: 'confirmed' },
+    });
+  }
+  const cancellationItem = () => {
+    const cancelled = cancellationState === 'cancelled';
+    return {
+      bookingReference: 'AB-1234567890ABCD',
+      bookingStatus: cancelled ? 'cancelled' : 'confirmed',
+      paymentStatus: cancelled ? 'refunded' : 'paid',
+      guestName: 'Alex Guest',
+      apartment: {
+        name: apartment.name,
+        location: apartment.displayLocation,
+      },
+      checkIn: addDays(10),
+      checkOut: addDays(12),
+      nights: 2,
+      guestCount: 2,
+      amountPaid: '50000.00',
+      currency: 'NGN',
+      scheduledCheckInAt: new Date(
+        `${addDays(10)}T13:00:00.000Z`,
+      ).toISOString(),
+      cancellationDeadline: new Date(
+        `${addDays(9)}T13:00:00.000Z`,
+      ).toISOString(),
+      deadlineLabel: `${addDays(9)} at 14:00`,
+      timeZone: 'Africa/Lagos',
+      eligible: !cancelled,
+      reason: cancelled ? 'ALREADY_CANCELLED' : null,
+      message: cancelled
+        ? 'This booking has already been cancelled.'
+        : 'This booking can be cancelled online.',
+      checkedAt: new Date().toISOString(),
+      alreadyCancelled: cancelled,
+      cancelledAt: cancelled ? new Date().toISOString() : null,
+      refundStatus: cancelled ? 'successful' : null,
+    };
+  };
+  if (request.method === 'GET' && path === '/cancellations/request') {
+    const token = request.headers['x-cancellation-token'];
+    if (token === expiredCancellationToken)
+      return send(response, 410, {
+        error: {
+          message:
+            'This cancellation link has expired. Contact Staywell support for help.',
+        },
+      });
+    if (token === cancellationToken)
+      return send(response, 200, { item: cancellationItem() });
+    if (token === ineligibleCancellationToken)
+      return send(response, 200, {
+        item: {
+          ...cancellationItem(),
+          eligible: false,
+          reason: 'CANCELLATION_DEADLINE_PASSED',
+          message:
+            'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+        },
+      });
+    return send(response, 404, {
+      error: {
+        message:
+          'This cancellation link is not valid. Use the link from your booking confirmation email.',
+      },
+    });
+  }
+  if (request.method === 'POST' && path === '/cancellations/confirm') {
+    const token = request.headers['x-cancellation-token'];
+    if (token === expiredCancellationToken)
+      return send(response, 410, {
+        error: {
+          message:
+            'This cancellation link has expired. Contact Staywell support for help.',
+        },
+      });
+    if (token === ineligibleCancellationToken)
+      return send(response, 409, {
+        error: {
+          message:
+            'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+        },
+      });
+    if (token !== cancellationToken)
+      return send(response, 404, {
+        error: {
+          message:
+            'This cancellation link is not valid. Use the link from your booking confirmation email.',
+        },
+      });
+    if (cancellationState === 'cancelled')
+      return send(response, 409, {
+        error: {
+          message:
+            'This cancellation request has already been submitted. Check your email for updates.',
+        },
+      });
+    cancellationConfirms += 1;
+    cancellationState = 'cancelled';
+    return send(response, 200, {
+      item: {
+        bookingReference: 'AB-1234567890ABCD',
+        bookingStatus: 'cancelled',
+        refundStatus: 'successful',
+        message: 'Unbooking request received!',
+      },
     });
   }
   return send(response, 404, { error: { message: 'not found' } });

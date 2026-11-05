@@ -50,6 +50,11 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     expect(models.Apartment.associations.amenities).toBeDefined();
     expect(models.Booking.associations.guest).toBeDefined();
     expect(models.Booking.associations.paymentTransactions).toBeDefined();
+    expect(models.Booking.associations.cancellation).toBeDefined();
+    expect(models.Booking.associations.refund).toBeDefined();
+    expect(models.BookingCancellation.associations.refund).toBeDefined();
+    expect(models.BookingRefund.associations.payment).toBeDefined();
+    expect(models.EmailNotification).toBeDefined();
     expect(models.PaymentTransaction.associations.stateEvents).toBeDefined();
     expect(models.PaymentWebhookEvent).toBeDefined();
     expect(models.AdminAccount.associations.sessions).toBeDefined();
@@ -74,6 +79,29 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
         (index) =>
           index.name ===
           'payment_transactions_one_active_attempt_per_booking_uq',
+      ),
+    ).toBe(true);
+    const cancellationIndexes = (await db
+      .getQueryInterface()
+      .showIndex('booking_cancellation_tokens', { transaction })) as Array<{
+      name: string;
+      unique?: boolean;
+    }>;
+    expect(
+      cancellationIndexes.some(
+        (index) =>
+          index.name === 'booking_cancellation_tokens_one_active_uq' &&
+          index.unique,
+      ),
+    ).toBe(true);
+    const refundIndexes = (await db
+      .getQueryInterface()
+      .showIndex('booking_refunds', { transaction })) as Array<{
+      name: string;
+    }>;
+    expect(
+      refundIndexes.some(
+        (index) => index.name === 'booking_refunds_status_created_idx',
       ),
     ).toBe(true);
     const webhookIndexes = (await db
@@ -425,6 +453,8 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
         checkOutPolicy: null,
         cancellationPolicy: null,
         houseRules: [],
+        timeZone: 'Africa/Lagos',
+        checkInTime: '14:00',
       });
 
       const reference = created.body.bookingReference as string;
@@ -906,6 +936,187 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     );
     await stale.reload({ transaction });
     expect(stale.get('status')).toBe('expired');
+  });
+
+  it('cancels a paid booking through a token, records an independent refund, and releases inventory', async () => {
+    const apartment = await makeApartment(models, transaction, 'cancel');
+    await apartment.update(
+      {
+        status: 'published',
+        timezone: 'Africa/Lagos',
+        checkInTime: '14:00:00',
+      },
+      { transaction },
+    );
+    const guest = await makeGuest(models, transaction, 'cancel');
+    const booking = await models.Booking.create(
+      {
+        apartmentId: apartment.get('id') as string,
+        guestId: guest.get('id') as string,
+        checkIn: '2030-08-01',
+        checkOut: '2030-08-03',
+        guestCount: 2,
+        nights: 2,
+        priceBreakdown: {},
+        totalAmount: '200.00',
+        currency: 'NGN',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        acceptedPolicySnapshot: {
+          timeZone: 'Africa/Lagos',
+          checkInTime: '14:00',
+        },
+      },
+      { transaction },
+    );
+    const payment = await models.PaymentTransaction.create(
+      {
+        bookingId: booking.get('id') as string,
+        provider: 'paystack',
+        transactionReference: `cancel-${crypto.randomUUID()}`,
+        expectedAmount: '200.00',
+        currency: 'NGN',
+        status: 'succeeded',
+        verifiedAt: new Date('2030-07-01T00:00:00.000Z'),
+      },
+      { transaction },
+    );
+    const { createCancellationToken } = await import(
+      '../services/cancellation-tokens.js'
+    );
+    const token = (
+      await createCancellationToken(
+        booking.get('id') as string,
+        new Date('2030-08-01T13:00:00.000Z'),
+        transaction,
+      )
+    ).token;
+    await transaction.commit();
+    transaction = await db.transaction();
+
+    const bookingId = String(booking.get('id'));
+    try {
+      const { confirmCancellation, getCancellationRequest } = await import(
+        '../services/booking-cancellation.js'
+      );
+      const now = new Date('2030-07-01T00:00:00.000Z');
+      const summary = await getCancellationRequest(token, now);
+      expect(summary.eligible).toBe(true);
+      expect(summary.bookingStatus).toBe('confirmed');
+      expect(
+        (await models.Booking.findByPk(bookingId, { transaction }))?.get(
+          'status',
+        ),
+      ).toBe('confirmed');
+
+      const client = {
+        initialize: async () => {
+          throw new Error('not used');
+        },
+        verify: async () => {
+          throw new Error('not used');
+        },
+        refund: async () => ({
+          id: 'refund_test_success',
+          status: 'processed',
+          amount: 20000,
+          currency: 'NGN',
+        }),
+      };
+      const result = await confirmCancellation(token, { now, client });
+      expect(result).toMatchObject({
+        bookingStatus: 'cancelled',
+        refundStatus: 'successful',
+      });
+
+      const cancelled = await models.Booking.findByPk(bookingId, {
+        transaction,
+      });
+      expect(cancelled?.get('status')).toBe('cancelled');
+      expect(cancelled?.get('paymentStatus')).toBe('refunded');
+      expect(
+        (
+          await models.PaymentTransaction.findByPk(
+            payment.get('id') as string,
+            {
+              transaction,
+            },
+          )
+        )?.get('status'),
+      ).toBe('refunded');
+      const refund = await models.BookingRefund.findOne({
+        where: { bookingId },
+        transaction,
+      });
+      expect(refund?.get('status')).toBe('successful');
+      expect(refund?.get('providerRefundId')).toBe('refund_test_success');
+      expect(refund?.get('policy')).toBe('full_transaction_amount');
+      expect(
+        await models.InventoryClaim.count({
+          where: { bookingId },
+          transaction,
+        }),
+      ).toBe(0);
+
+      await expect(
+        confirmCancellation(token, { now, client }),
+      ).rejects.toMatchObject({ code: 'CANCELLATION_ALREADY_PROCESSED' });
+      const after = await getCancellationRequest(token, now);
+      expect(after.alreadyCancelled).toBe(true);
+      expect(after.bookingStatus).toBe('cancelled');
+    } finally {
+      await models.EmailNotification.destroy({
+        where: { bookingId },
+        force: true,
+        transaction,
+      });
+      await models.BookingRefund.destroy({
+        where: { bookingId },
+        force: true,
+        transaction,
+      });
+      await models.BookingCancellation.destroy({
+        where: { bookingId },
+        force: true,
+        transaction,
+      });
+      await models.BookingCancellationToken.destroy({
+        where: { bookingId },
+        transaction,
+      });
+      await models.BookingStatusEvent.destroy({
+        where: { bookingId },
+        force: true,
+        transaction,
+      });
+      await models.PaymentStateEvent.destroy({
+        where: { paymentTransactionId: payment.get('id') as string },
+        force: true,
+        transaction,
+      });
+      await models.PaymentTransaction.destroy({
+        where: { bookingId },
+        force: true,
+        transaction,
+      });
+      await models.Booking.destroy({
+        where: { id: bookingId },
+        force: true,
+        transaction,
+      });
+      await models.Guest.destroy({
+        where: { id: guest.get('id') as string },
+        force: true,
+        transaction,
+      });
+      await models.Apartment.destroy({
+        where: { id: apartment.get('id') as string },
+        force: true,
+        transaction,
+      });
+      await transaction.commit();
+      transaction = await db.transaction();
+    }
   });
 
   it('uses the same exclusion constraint for manual availability blocks', async () => {

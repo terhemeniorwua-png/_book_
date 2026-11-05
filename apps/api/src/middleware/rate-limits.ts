@@ -66,6 +66,11 @@ export const paymentVerificationLimiter = (
   createSensitiveLimiter(configuration, 'payment-verification', storeFactory);
 export const administrativeLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'administrative');
+export const bookingCancellationLimiter = (
+  configuration: AppEnvironment,
+  storeFactory = configuredStoreFactory,
+) =>
+  createSensitiveLimiter(configuration, 'booking-cancellation', storeFactory);
 export const publicInquiryLimiter = (configuration: AppEnvironment) =>
   createSensitiveLimiter(configuration, 'public-inquiry');
 

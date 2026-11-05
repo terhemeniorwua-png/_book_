@@ -78,6 +78,20 @@ const schema = Joi.object({
     .min(5)
     .max(1440)
     .default(30),
+  CUSTOMER_APP_URL: Joi.string()
+    .empty('')
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
+  EMAIL_PROVIDER_API_URL: Joi.string()
+    .empty('')
+    .uri({ scheme: ['https'] })
+    .default('https://api.resend.com/emails'),
+  EMAIL_PROVIDER_API_KEY: Joi.string().empty('').optional(),
+  EMAIL_FROM_ADDRESS: Joi.string()
+    .empty('')
+    .email({ tlds: { allow: false } })
+    .max(320)
+    .optional(),
   S3_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .optional(),
@@ -110,6 +124,10 @@ export type AppEnvironment = {
   PAYSTACK_CALLBACK_URL?: string;
   PAYSTACK_WEBHOOK_URL?: string;
   PAYMENT_RECONCILIATION_AGE_MINUTES: number;
+  CUSTOMER_APP_URL?: string;
+  EMAIL_PROVIDER_API_URL: string;
+  EMAIL_PROVIDER_API_KEY?: string;
+  EMAIL_FROM_ADDRESS?: string;
   S3_ENDPOINT?: string;
   S3_REGION?: string;
   S3_BUCKET?: string;
@@ -137,7 +155,7 @@ export function validateEnvironment(
     value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY,
   );
   if (hasPaystackKey) {
-    const mode = value.NODE_ENV === 'production' ? 'test' : 'test';
+    const mode = value.NODE_ENV === 'production' ? 'live' : 'test';
     if (
       (value.PAYSTACK_SECRET_KEY &&
         !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`)) ||

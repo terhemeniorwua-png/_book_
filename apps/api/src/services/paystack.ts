@@ -9,13 +9,28 @@ import { Model, Op, UniqueConstraintError } from 'sequelize';
 import { env } from '../config/env.js';
 import { sequelize } from '../db/client.js';
 import {
+  Apartment,
   Booking,
+  BookingRefund,
   Guest,
   InventoryClaim,
   PaymentStateEvent,
   PaymentTransaction,
   PaymentWebhookEvent,
 } from '../db/models/index.js';
+import { createCancellationToken } from './cancellation-tokens.js';
+import { resolveCancellationSchedule } from './cancellation-policy.js';
+import {
+  sendAdminRefundOutcomeEmail,
+  sendBookingConfirmationEmail,
+  sendRefundFailedEmail,
+  sendRefundSuccessfulEmail,
+} from './email.js';
+import {
+  mapProviderRefundStatus,
+  sanitizeRefundMetadata,
+  updateRefundWithinTransaction,
+} from './refund-processing.js';
 
 type RecordLike = Record<string, unknown>;
 export type PaystackTransaction = {
@@ -29,7 +44,7 @@ export type PaystackTransaction = {
   paid_at?: string | null;
 };
 type PaystackResponse<T> = { status: boolean; message?: string; data: T };
-type ProviderClient = {
+export type ProviderClient = {
   initialize: (body: RecordLike) => Promise<{
     authorization_url: string;
     access_code: string;
@@ -37,6 +52,7 @@ type ProviderClient = {
   }>;
   verify: (reference: string) => Promise<PaystackTransaction>;
   refund: (reference: string) => Promise<unknown>;
+  listRefunds?: (reference: string) => Promise<unknown>;
 };
 
 export class PaymentError extends Error {
@@ -175,6 +191,10 @@ export function createPaystackClient(
         method: 'POST',
         body: JSON.stringify({ transaction: reference }),
       }),
+    listRefunds: (reference) =>
+      request(`/refund?transaction=${encodeURIComponent(reference)}`, {
+        method: 'GET',
+      }),
   };
 }
 
@@ -242,7 +262,7 @@ export async function initializePayment(
   let callbackUrl = env.PAYSTACK_CALLBACK_URL;
   try {
     const result = await sequelize.transaction(async (transaction) => {
-        const booking = (await Booking.findOne({
+      const booking = (await Booking.findOne({
         where: { bookingReference },
         include: [{ model: Guest, as: 'guest' }],
         transaction,
@@ -586,54 +606,120 @@ export async function verifyPaymentForBooking(
   return processVerifiedTransaction(reference, provider, client);
 }
 
+type VerifiedTransactionUpdate = {
+  status: string;
+  bookingStatus: string;
+  shouldRefund: boolean;
+  confirmationToken?: string;
+  bookingId?: string;
+};
+
 async function processVerifiedTransaction(
   reference: string,
   provider: PaystackTransaction,
   client: ProviderClient = defaultClient(),
 ) {
-  const update = await sequelize.transaction(async (transaction) => {
-    const payment = await PaymentTransaction.findOne({
-      where: { transactionReference: reference, provider: 'paystack' },
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    if (!payment)
-      throw new PaymentError(
-        404,
-        'PAYMENT_NOT_FOUND',
-        'Payment could not be found.',
+  const update = await sequelize.transaction<VerifiedTransactionUpdate>(
+    async (transaction) => {
+      const payment = await PaymentTransaction.findOne({
+        where: { transactionReference: reference, provider: 'paystack' },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!payment)
+        throw new PaymentError(
+          404,
+          'PAYMENT_NOT_FOUND',
+          'Payment could not be found.',
+        );
+      const paymentData = payment.get({ plain: true }) as RecordLike;
+      const booking = await Booking.findByPk(String(paymentData.bookingId), {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!booking)
+        throw new PaymentError(
+          404,
+          'BOOKING_NOT_FOUND',
+          'Booking could not be found.',
+        );
+      const bookingData = booking.get({ plain: true }) as RecordLike;
+      const now = new Date();
+      if (
+        paymentData.status === 'refund_pending' ||
+        paymentData.status === 'refunded'
+      ) {
+        return {
+          status: String(paymentData.status),
+          bookingStatus: String(bookingData.status),
+          shouldRefund: false,
+        };
+      }
+      if (provider.status !== 'success') {
+        if (provider.status === 'failed' || provider.status === 'abandoned') {
+          await payment.update(
+            {
+              status: provider.status,
+              verifiedAt: now,
+              processedAt: now,
+              providerTransactionId: String(provider.id),
+            },
+            { transaction },
+          );
+          await PaymentStateEvent.create(
+            {
+              paymentTransactionId: paymentData.id,
+              previousStatus: String(paymentData.status),
+              nextStatus: provider.status,
+              source: 'verification',
+              metadata: {},
+            },
+            { transaction },
+          );
+          if (
+            bookingData.status === 'pending' &&
+            bookingData.paymentStatus !== 'paid'
+          )
+            await booking.update({ paymentStatus: 'failed' }, { transaction });
+          return {
+            status: provider.status,
+            bookingStatus: String(bookingData.status),
+            shouldRefund: false,
+          };
+        }
+        return {
+          status: 'pending',
+          bookingStatus: String(bookingData.status),
+          shouldRefund: false,
+        };
+      }
+      if (
+        paymentData.status === 'succeeded' ||
+        paymentData.status === 'refunded'
+      )
+        return {
+          status: String(paymentData.status),
+          bookingStatus: String(bookingData.status),
+          shouldRefund: false,
+        };
+      const inventoryClaim = await InventoryClaim.findOne({
+        where: { bookingId: bookingData.id },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const holdValid = canConfirmPaidReservation(
+        String(bookingData.status),
+        bookingData.expiresAt as string | Date | null,
+        Boolean(inventoryClaim),
+        now.getTime(),
       );
-    const paymentData = payment.get({ plain: true }) as RecordLike;
-    const booking = await Booking.findByPk(String(paymentData.bookingId), {
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    if (!booking)
-      throw new PaymentError(
-        404,
-        'BOOKING_NOT_FOUND',
-        'Booking could not be found.',
-      );
-    const bookingData = booking.get({ plain: true }) as RecordLike;
-    const now = new Date();
-    if (
-      paymentData.status === 'refund_pending' ||
-      paymentData.status === 'refunded'
-    ) {
-      return {
-        status: String(paymentData.status),
-        bookingStatus: String(bookingData.status),
-        shouldRefund: false,
-      };
-    }
-    if (provider.status !== 'success') {
-      if (provider.status === 'failed' || provider.status === 'abandoned') {
+      if (holdValid) {
         await payment.update(
           {
-            status: provider.status,
+            status: 'succeeded',
+            providerTransactionId: String(provider.id),
             verifiedAt: now,
             processedAt: now,
-            providerTransactionId: String(provider.id),
           },
           { transaction },
         );
@@ -641,53 +727,72 @@ async function processVerifiedTransaction(
           {
             paymentTransactionId: paymentData.id,
             previousStatus: String(paymentData.status),
-            nextStatus: provider.status,
+            nextStatus: 'succeeded',
             source: 'verification',
             metadata: {},
           },
           { transaction },
         );
-        if (
-          bookingData.status === 'pending' &&
-          bookingData.paymentStatus !== 'paid'
-        )
-          await booking.update({ paymentStatus: 'failed' }, { transaction });
+        await booking.update(
+          { status: 'confirmed', paymentStatus: 'paid', expiresAt: null },
+          { transaction },
+        );
+        const apartment = await Apartment.findByPk(
+          String(bookingData.apartmentId),
+          { transaction },
+        );
+        let confirmationToken: string | undefined;
+        if (apartment) {
+          const apartmentValue = apartment.get({ plain: true }) as RecordLike;
+          const schedule = resolveCancellationSchedule(
+            {
+              checkIn: String(bookingData.checkIn),
+              acceptedPolicySnapshot: bookingData.acceptedPolicySnapshot,
+            },
+            {
+              timezone: apartmentValue.timezone as string | null | undefined,
+              checkInTime: apartmentValue.checkInTime as
+                | string
+                | null
+                | undefined,
+            },
+            now,
+          );
+          const expiresAt =
+            schedule.checkInAt.getTime() > now.getTime()
+              ? schedule.checkInAt
+              : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          confirmationToken = (
+            await createCancellationToken(
+              String(bookingData.id),
+              expiresAt,
+              transaction,
+            )
+          ).token;
+        }
         return {
-          status: provider.status,
-          bookingStatus: String(bookingData.status),
+          status: 'succeeded',
+          bookingStatus: 'confirmed',
           shouldRefund: false,
+          confirmationToken,
+          bookingId: String(bookingData.id),
         };
       }
-      return {
-        status: 'pending',
-        bookingStatus: String(bookingData.status),
-        shouldRefund: false,
-      };
-    }
-    if (paymentData.status === 'succeeded' || paymentData.status === 'refunded')
-      return {
-        status: String(paymentData.status),
-        bookingStatus: String(bookingData.status),
-        shouldRefund: false,
-      };
-    const inventoryClaim = await InventoryClaim.findOne({
-      where: { bookingId: bookingData.id },
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    const holdValid = canConfirmPaidReservation(
-      String(bookingData.status),
-      bookingData.expiresAt as string | Date | null,
-      Boolean(inventoryClaim),
-      now.getTime(),
-    );
-    if (holdValid) {
+      const existingMetadata =
+        paymentData.providerMetadata &&
+        typeof paymentData.providerMetadata === 'object'
+          ? (paymentData.providerMetadata as RecordLike)
+          : {};
       await payment.update(
         {
-          status: 'succeeded',
+          status: 'refund_pending',
           providerTransactionId: String(provider.id),
           verifiedAt: now,
           processedAt: now,
+          providerMetadata: {
+            ...existingMetadata,
+            refundRequestStartedAt: now.toISOString(),
+          },
         },
         { transaction },
       );
@@ -695,71 +800,34 @@ async function processVerifiedTransaction(
         {
           paymentTransactionId: paymentData.id,
           previousStatus: String(paymentData.status),
-          nextStatus: 'succeeded',
-          source: 'verification',
-          metadata: {},
+          nextStatus: 'refund_pending',
+          source: 'late_success',
+          metadata: { bookingStatus: String(bookingData.status) },
         },
         { transaction },
       );
-      await booking.update(
-        { status: 'confirmed', paymentStatus: 'paid', expiresAt: null },
-        { transaction },
-      );
+      if (
+        bookingData.status === 'pending' ||
+        bookingData.status === 'expired' ||
+        bookingData.status === 'cancelled' ||
+        bookingData.status === 'rejected'
+      ) {
+        const shouldExpire = bookingData.status === 'pending';
+        await booking.update(
+          {
+            ...(shouldExpire ? { status: 'expired' } : {}),
+            paymentStatus: 'refund_pending',
+          },
+          { transaction },
+        );
+      }
       return {
-        status: 'succeeded',
-        bookingStatus: 'confirmed',
-        shouldRefund: false,
-      };
-    }
-    const existingMetadata =
-      paymentData.providerMetadata &&
-      typeof paymentData.providerMetadata === 'object'
-        ? (paymentData.providerMetadata as RecordLike)
-        : {};
-    await payment.update(
-      {
         status: 'refund_pending',
-        providerTransactionId: String(provider.id),
-        verifiedAt: now,
-        processedAt: now,
-        providerMetadata: {
-          ...existingMetadata,
-          refundRequestStartedAt: now.toISOString(),
-        },
-      },
-      { transaction },
-    );
-    await PaymentStateEvent.create(
-      {
-        paymentTransactionId: paymentData.id,
-        previousStatus: String(paymentData.status),
-        nextStatus: 'refund_pending',
-        source: 'late_success',
-        metadata: { bookingStatus: String(bookingData.status) },
-      },
-      { transaction },
-    );
-    if (
-      bookingData.status === 'pending' ||
-      bookingData.status === 'expired' ||
-      bookingData.status === 'cancelled' ||
-      bookingData.status === 'rejected'
-    ) {
-      const shouldExpire = bookingData.status === 'pending';
-      await booking.update(
-        {
-          ...(shouldExpire ? { status: 'expired' } : {}),
-          paymentStatus: 'refund_pending',
-        },
-        { transaction },
-      );
-    }
-    return {
-      status: 'refund_pending',
-      bookingStatus: String(bookingData.status),
-      shouldRefund: true,
-    };
-  });
+        bookingStatus: String(bookingData.status),
+        shouldRefund: true,
+      };
+    },
+  );
   if (update.shouldRefund) {
     try {
       const providerRefundResult = await client.refund(reference);
@@ -780,6 +848,11 @@ async function processVerifiedTransaction(
       // Keep the single refund request attempt recorded; an operator reviews it before retrying.
     }
   }
+  if (update.confirmationToken && update.bookingId)
+    void sendBookingConfirmationEmail(
+      update.bookingId,
+      update.confirmationToken,
+    );
   return { status: update.status, bookingStatus: update.bookingStatus };
 }
 
@@ -816,12 +889,32 @@ export async function handlePaystackWebhook(
     event.data && typeof event.data === 'object'
       ? (event.data as RecordLike)
       : {};
-  const reference =
+  const transactionData =
+    data.transaction &&
+    typeof data.transaction === 'object' &&
+    !Array.isArray(data.transaction)
+      ? (data.transaction as RecordLike)
+      : null;
+  let reference =
     typeof data.reference === 'string'
       ? data.reference
       : typeof data.transaction_reference === 'string'
         ? data.transaction_reference
+        : typeof transactionData?.reference === 'string'
+          ? transactionData.reference
+          : null;
+  if (!reference && eventType.startsWith('refund.')) {
+    const providerId =
+      typeof data.id === 'string' || typeof data.id === 'number'
+        ? String(data.id)
         : null;
+    if (providerId) {
+      const refund = await BookingRefund.findOne({
+        where: { providerRefundId: providerId },
+      });
+      if (refund) reference = String(refund.get('providerReference'));
+    }
+  }
   const eventHash = sha256(rawBody);
   let eventRow: Model;
   try {
@@ -889,13 +982,30 @@ export async function handlePaystackWebhook(
       await markPaymentForManualReview(reference, 'refund_event_mismatch', {
         refundEvent: eventType,
       });
+      const refund = await BookingRefund.findOne({
+        where: { paymentTransactionId: String(paymentData.id) },
+      });
+      if (refund) {
+        const change = await sequelize.transaction(async (transaction) =>
+          updateRefundWithinTransaction(transaction, String(refund.get('id')), {
+            status: 'failed',
+            failureReason: 'refund_event_mismatch',
+            processedAt: new Date(),
+            source: 'paystack_webhook_mismatch',
+          }),
+        );
+        if (change?.changed) {
+          void sendRefundFailedEmail(change.refundId);
+          void sendAdminRefundOutcomeEmail(change.refundId, 'failed');
+        }
+      }
       await eventRow.update({
         processingStatus: 'processed',
         processedAt: new Date(),
       });
       return { duplicate: false, processed: true, reviewRequired: true };
     }
-    await sequelize.transaction(async (transaction) => {
+    const refundChange = await sequelize.transaction(async (transaction) => {
       const lockedPayment = await PaymentTransaction.findByPk(
         String(paymentData.id),
         { transaction, lock: transaction.LOCK.UPDATE },
@@ -907,6 +1017,45 @@ export async function handlePaystackWebhook(
           'Payment could not be found.',
         );
       const lockedData = lockedPayment.get({ plain: true }) as RecordLike;
+      const refund = await BookingRefund.findOne({
+        where: { paymentTransactionId: String(lockedData.id) },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (refund) {
+        const nextRefundStatus = mapProviderRefundStatus(
+          eventType === 'refund.processed'
+            ? 'processed'
+            : eventType === 'refund.failed'
+              ? 'failed'
+              : 'processing',
+        );
+        const providerId =
+          typeof data.id === 'string' || typeof data.id === 'number'
+            ? String(data.id)
+            : undefined;
+        return updateRefundWithinTransaction(
+          transaction,
+          String(refund.get('id')),
+          {
+            status: nextRefundStatus,
+            providerRefundId: providerId ?? null,
+            metadata: {
+              ...sanitizeRefundMetadata(data),
+              lastRefundEvent: eventType,
+            },
+            failureReason:
+              nextRefundStatus === 'failed'
+                ? 'provider_reported_failure'
+                : null,
+            processedAt:
+              nextRefundStatus === 'successful' || nextRefundStatus === 'failed'
+                ? new Date()
+                : null,
+            source: 'paystack_webhook',
+          },
+        );
+      }
       const booking = await Booking.findByPk(String(lockedData.bookingId), {
         transaction,
         lock: transaction.LOCK.UPDATE,
@@ -967,7 +1116,18 @@ export async function handlePaystackWebhook(
           { transaction },
         );
       }
+      return null;
     });
+    if (refundChange?.changed) {
+      if (refundChange.nextStatus === 'successful') {
+        void sendRefundSuccessfulEmail(refundChange.refundId);
+        void sendAdminRefundOutcomeEmail(refundChange.refundId, 'successful');
+      }
+      if (refundChange.nextStatus === 'failed') {
+        void sendRefundFailedEmail(refundChange.refundId);
+        void sendAdminRefundOutcomeEmail(refundChange.refundId, 'failed');
+      }
+    }
     await eventRow.update({
       processingStatus: 'processed',
       processedAt: new Date(),

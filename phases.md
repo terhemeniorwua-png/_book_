@@ -74,6 +74,21 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [ ] Run migrations and reservation/payment concurrency tests against the dedicated `TEST_DATABASE_URL`, and complete a Paystack sandbox webhook/callback round trip before declaring acceptance complete.
 - [ ] Acceptance: secrets remain server-side; duplicate, invalid, delayed, refund, and successful payment events are verified against the provider and the isolated PostgreSQL integration suite passes.
 
+## Phase 8A — Guest self-service cancellation and refunds — In progress
+
+- [x] Add secure booking-specific cancellation tokens stored only as SHA-256 hashes, with a fixed purpose and expiry, delivered in the booking confirmation email URL fragment and sent by the web page in the `X-Cancellation-Token` header.
+- [x] Add read-only cancellation request details and an explicit confirmation endpoint; opening the link never mutates a booking, and eligibility is rechecked inside the confirmation transaction.
+- [x] Enforce cancellation at least 24 hours before the apartment-local scheduled check-in time using an immutable per-booking policy snapshot, with an IANA timezone and configurable check-in time per apartment.
+- [x] Cancel confirmed, verified-paid bookings atomically, preserve booking and payment records, mark the booking `cancelled` with `refund_pending`, revoke other active cancellation links, and let the existing inventory trigger release the dates.
+- [x] Add separate `booking_cancellations`, `booking_refunds`, and `email_notifications` records and refund states (`not_applicable`, `pending`, `processing`, `successful`, `failed`) distinct from booking and payment status.
+- [x] Request a full Paystack refund for the original transaction, handle pending, processing, successful, failed, rejected, duplicate, and concurrent outcomes, and only mark payments refunded after provider confirmation.
+- [x] Add provider webhook handling for refund outcomes, safe administrator refund listing and retry (superadmin only), audit events, and sanitized failure reasons without exposing tokens or secrets.
+- [x] Build the responsive `/booking/cancel` flow with loading, invalid, expired, ineligible, already-cancelled, confirmation dialog, decline, success, API failure, and refund-state messaging.
+- [x] Add optional email delivery and notification records for booking confirmation, cancellation received, cancellation completed, refund successful, and refund failed, while never logging cancellation tokens.
+- [x] Add cancellation policy, token, refund-mapping, API, frontend parsing, and E2E coverage; extend administrator bookings/refunds views and cover the new schema in the gated integration suite.
+- [ ] Run the full cancellation/refund integration suite against a dedicated `TEST_DATABASE_URL` and complete Paystack sandbox refund/webhook round trips before declaring acceptance complete.
+- [ ] Acceptance: verified-paid bookings can be cancelled only through explicit confirmation before the deadline, inventory is released, refunds remain independently tracked through provider outcomes, and administrators can review and safely retry failures.
+
 ## Phase 9 — Administrator dashboard — In progress
 
 - [x] Add Argon2id administrator login with no registration endpoint, opaque hashed database sessions, an eight-hour expiry, secure HttpOnly/SameSite cookies, CSRF verification, logout revocation, and strict login limits.
