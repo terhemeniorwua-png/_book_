@@ -54,14 +54,21 @@ function formatInstant(value: string, timeZone: string) {
   if (Number.isNaN(date.getTime())) return value;
   try {
     return new Intl.DateTimeFormat('en', {
-      dateStyle: 'long',
-      timeStyle: 'short',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
       timeZone,
     }).format(date);
   } catch {
     return new Intl.DateTimeFormat('en', {
-      dateStyle: 'long',
-      timeStyle: 'short',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     }).format(date);
   }
 }
@@ -276,8 +283,8 @@ export function CancellationRequestPage() {
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             Your cancellation request has been submitted successfully. You will
-            receive a confirmation email and an update when your refund has
-            been processed.
+            receive a confirmation email and an update when your refund has been
+            processed.
           </p>
           <dl className="mt-6 grid gap-3 rounded-2xl bg-sand/60 p-5 text-left text-sm sm:grid-cols-2">
             <div>
@@ -309,7 +316,7 @@ export function CancellationRequestPage() {
         </p>
         <h1 className="mt-2 font-display text-4xl text-ink">
           {canCancel
-            ? 'Cancel this booking?'
+            ? 'Unbook this apartment?'
             : 'This booking cannot be cancelled online.'}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
@@ -437,15 +444,15 @@ export function CancellationRequestPage() {
               id="cancellation-dialog-title"
               className="font-display text-2xl text-ink"
             >
-              Confirm cancellation
+              Unbook this apartment?
             </h2>
             <p
               id="cancellation-dialog-description"
               className="mt-3 text-sm leading-6 text-muted"
             >
-              Are you sure you want to unbook this apartment? Your cancellation
-              request will be submitted for processing. You will receive a
-              confirmation email and an update regarding your refund.
+              Are you sure you want to cancel this apartment booking? Your
+              cancellation request will be submitted for processing. You will
+              receive a confirmation and an update regarding your refund.
             </p>
             {submitError ? (
               <p
@@ -463,7 +470,7 @@ export function CancellationRequestPage() {
                 onClick={() => void confirmCancellation(item)}
                 className="min-h-12 rounded-xl bg-terracotta px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-terracotta disabled:cursor-wait disabled:opacity-60"
               >
-                {submitting ? 'Submitting request…' : 'Yes, unbook apartment'}
+                {submitting ? 'Submitting request…' : 'Yes, Unbook'}
               </button>
               <button
                 type="button"
@@ -471,7 +478,7 @@ export function CancellationRequestPage() {
                 onClick={() => setConfirmationOpen(false)}
                 className="min-h-12 rounded-xl border border-ink/20 px-5 py-3 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest disabled:opacity-60"
               >
-                No, keep my booking
+                Keep My Booking
               </button>
             </div>
           </div>

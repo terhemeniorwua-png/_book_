@@ -24,11 +24,13 @@ test('opens a secure cancellation page without cancelling the booking', async ({
   await page.goto('/apartments');
   await openCancellation(page, eligibleToken);
   await expect(
-    page.getByRole('heading', { name: 'Cancel this booking?' }),
+    page.getByRole('heading', { name: 'Unbook this apartment?' }),
   ).toBeVisible();
   await expect(page.getByText('AB-1234567890ABCD')).toBeVisible();
   await expect(
-    page.getByText(/refund will be requested through Paystack under Staywell’s refund policy/i),
+    page.getByText(
+      /refund will be requested through Paystack under Staywell’s refund policy/i,
+    ),
   ).toBeVisible();
 
   // The token is removed from the visible URL once the page has read it.
@@ -42,14 +44,14 @@ test('opens a secure cancellation page without cancelling the booking', async ({
 
   await page.getByRole('button', { name: 'Unbook this apartment' }).click();
   await expect(
-    page.getByRole('dialog', { name: 'Confirm cancellation' }),
+    page.getByRole('dialog', { name: 'Unbook this apartment?' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'No, keep my booking' }).click();
+  await page.getByRole('button', { name: 'Keep My Booking' }).click();
   await expect(
-    page.getByRole('dialog', { name: 'Confirm cancellation' }),
+    page.getByRole('dialog', { name: 'Unbook this apartment?' }),
   ).toBeHidden();
   await expect(
-    page.getByRole('heading', { name: 'Cancel this booking?' }),
+    page.getByRole('heading', { name: 'Unbook this apartment?' }),
   ).toBeVisible();
 
   const afterDecline = await request.get(`${apiOrigin}/__test/state`);
@@ -65,18 +67,22 @@ test('requires explicit confirmation before cancelling and refunding', async ({
 }) => {
   await openCancellation(page, eligibleToken);
   await page.getByRole('button', { name: 'Unbook this apartment' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Confirm cancellation' });
+  const dialog = page.getByRole('dialog', { name: 'Unbook this apartment?' });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Your cancellation request will be submitted for processing.');
+  await expect(dialog).toContainText(
+    'Are you sure you want to cancel this apartment booking?',
+  );
 
-  await page.getByRole('button', { name: 'Yes, unbook apartment' }).click();
+  await page.getByRole('button', { name: 'Yes, Unbook' }).click();
   await expect(
     page.getByRole('heading', { name: 'Unbooking request received!' }),
   ).toBeVisible();
   await expect(
     page.getByText(/Your cancellation request has been submitted successfully/),
   ).toBeVisible();
-  await expect(page.getByText(/Paystack has confirmed your refund/)).toHaveCount(0);
+  await expect(
+    page.getByText(/Paystack has confirmed your refund/),
+  ).toHaveCount(0);
 
   const state = await request.get(`${apiOrigin}/__test/state`);
   expect(await state.json()).toMatchObject({

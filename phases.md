@@ -68,6 +68,8 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [x] Initialize server-priced pending reservations using their protected booking access token, unique provider references, idempotency keys, the authoritative stored amount in kobo, and one-active-attempt constraints.
 - [x] Add callback verification and a responsive checkout redirect; browser parameters never mark a booking paid.
 - [x] Verify transaction reference, provider status, exact amount, currency, guest email, and test/live domain before atomically confirming a live inventory hold.
+- [x] Supply the booking guest's email to Paystack at initialization, then send a separate Staywell booking confirmation only after successful server-side verification.
+- [x] Use a branded HTML/plain-text confirmation with a secure cancellation link, unique email notification identity, provider idempotency header, attempt tracking, and one retry for transient failures.
 - [x] Parse webhook payloads as bounded raw bytes, validate HMAC-SHA512, independently verify charge success, store dedupe hashes, and lock rows to handle duplicate/concurrent callback and webhook delivery.
 - [x] Track payment transition audit records, refund events, late payments, and manual-review outcomes; expose a shell-only reconciliation command that queries Paystack before changes.
 - [x] Add focused mocked Paystack, signature, configuration, raw webhook, rate-limit, and frontend response-schema tests.
@@ -85,8 +87,11 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [x] Add provider webhook handling for refund outcomes, safe administrator refund listing and retry (superadmin only), audit events, and sanitized failure reasons without exposing tokens or secrets.
 - [x] Build the responsive `/booking/cancel` flow with loading, invalid, expired, ineligible, already-cancelled, confirmation dialog, decline, success, API failure, and refund-state messaging.
 - [x] Add optional email delivery and notification records for booking confirmation, cancellation received, cancellation completed, refund successful, and refund failed, while never logging cancellation tokens.
+- [x] Include apartment-managed check-out times when configured; otherwise ask the guest to confirm with Staywell. Document Paystack's receipt preference separately from Staywell email.
+- [x] Add email deduplication/provider message tracking and apartment check-out time in a forward migration and administrator property settings.
 - [x] Add cancellation policy, token, refund-mapping, API, frontend parsing, and E2E coverage; extend administrator bookings/refunds views and cover the new schema in the gated integration suite.
 - [ ] Run the full cancellation/refund integration suite against a dedicated `TEST_DATABASE_URL` and complete Paystack sandbox refund/webhook round trips before declaring acceptance complete.
+- [ ] Product owner confirms the existing full-transaction refund behavior applies to eligible self-service cancellations, or specifies an approved cancellation-specific amount policy.
 - [ ] Acceptance: verified-paid bookings can be cancelled only through explicit confirmation before the deadline, inventory is released, refunds remain independently tracked through provider outcomes, and administrators can review and safely retry failures.
 
 ## Phase 9 — Administrator dashboard — In progress

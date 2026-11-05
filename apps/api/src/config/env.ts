@@ -92,6 +92,11 @@ const schema = Joi.object({
     .email({ tlds: { allow: false } })
     .max(320)
     .optional(),
+  SUPPORT_EMAIL_ADDRESS: Joi.string()
+    .empty('')
+    .email({ tlds: { allow: false } })
+    .max(320)
+    .optional(),
   S3_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .optional(),
@@ -128,6 +133,7 @@ export type AppEnvironment = {
   EMAIL_PROVIDER_API_URL: string;
   EMAIL_PROVIDER_API_KEY?: string;
   EMAIL_FROM_ADDRESS?: string;
+  SUPPORT_EMAIL_ADDRESS?: string;
   S3_ENDPOINT?: string;
   S3_REGION?: string;
   S3_BUCKET?: string;

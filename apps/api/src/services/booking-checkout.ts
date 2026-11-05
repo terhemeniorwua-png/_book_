@@ -576,6 +576,10 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
             checkInTime: normalizeCheckInTime(
               property.checkInTime as string | null,
             ),
+            checkOutTime:
+              typeof property.checkOutTime === 'string'
+                ? property.checkOutTime.slice(0, 5)
+                : null,
           },
         },
         { transaction },

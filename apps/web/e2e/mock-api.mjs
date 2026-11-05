@@ -382,7 +382,7 @@ const server = createServer(async (request, response) => {
           eligible: false,
           reason: 'CANCELLATION_DEADLINE_PASSED',
           message:
-            'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+            'This booking is no longer eligible for online cancellation because the 24-hour cancellation deadline has passed. Please contact Staywell for assistance.',
         },
       });
     return send(response, 404, {
@@ -405,7 +405,7 @@ const server = createServer(async (request, response) => {
       return send(response, 409, {
         error: {
           message:
-            'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+            'This booking is no longer eligible for online cancellation because the 24-hour cancellation deadline has passed. Please contact Staywell for assistance.',
         },
       });
     if (token !== cancellationToken)

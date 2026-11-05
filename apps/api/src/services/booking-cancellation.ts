@@ -13,7 +13,7 @@ import {
   PaymentTransaction,
 } from '../db/models/index.js';
 import {
-  formatScheduledDateTime,
+  formatScheduledDateTimeWithZone,
   resolveCancellationSchedule,
   type CancellationSchedule,
 } from './cancellation-policy.js';
@@ -27,6 +27,7 @@ import {
   sendAdminRefundOutcomeEmail,
   sendCancellationCompletedEmail,
   sendCancellationReceivedEmail,
+  sendRefundDelayedEmail,
   sendRefundFailedEmail,
   sendRefundSuccessfulEmail,
 } from './email.js';
@@ -139,7 +140,7 @@ function ineligibilityMessage(reason: string | null) {
   if (reason === 'ALREADY_CANCELLED')
     return 'This booking has already been cancelled.';
   if (reason === 'CANCELLATION_DEADLINE_PASSED')
-    return 'The cancellation deadline has passed. This booking can no longer be cancelled online.';
+    return 'This booking is no longer eligible for online cancellation because the 24-hour cancellation deadline has passed. Please contact Staywell for assistance.';
   if (reason === 'CHECK_IN_STARTED')
     return 'The scheduled check-in time has passed, so this booking can no longer be cancelled online.';
   if (reason === 'CANCELLATION_IN_PROGRESS')
@@ -188,7 +189,7 @@ function requestItem(input: {
     currency: String(payment?.currency ?? booking.currency),
     scheduledCheckInAt: schedule.checkInAt.toISOString(),
     cancellationDeadline: schedule.deadlineAt.toISOString(),
-    deadlineLabel: formatScheduledDateTime(
+    deadlineLabel: formatScheduledDateTimeWithZone(
       schedule.deadlineAt,
       schedule.timeZone,
     ),
@@ -593,6 +594,7 @@ export async function processCancellationRefund(
       void sendRefundSuccessfulEmail(refundId);
       void sendAdminRefundOutcomeEmail(refundId, 'successful');
     }
+    if (mapped === 'processing') void sendRefundDelayedEmail(refundId);
     if (mapped === 'failed') {
       void sendRefundFailedEmail(refundId);
       void sendAdminRefundOutcomeEmail(refundId, 'failed');

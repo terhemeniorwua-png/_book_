@@ -724,6 +724,7 @@ function ApartmentForm({
       displayLocation: String(data.get('displayLocation')),
       timezone: String(data.get('timezone') ?? '').trim() || null,
       checkInTime: String(data.get('checkInTime') ?? '').trim() || null,
+      checkOutTime: String(data.get('checkOutTime') ?? '').trim() || null,
       minStayNights: Number(data.get('minStayNights') || 1),
       ...(String(data.get('maxStayNights') ?? '').trim()
         ? { maxStayNights: Number(data.get('maxStayNights')) }
@@ -791,6 +792,7 @@ function ApartmentForm({
           ['displayLocation', 'Display location'],
           ['timezone', 'Timezone (IANA, optional)'],
           ['checkInTime', 'Check-in time (HH:MM, optional)'],
+          ['checkOutTime', 'Check-out time (HH:MM, optional)'],
           ['minStayNights', 'Minimum nights'],
           ['maxStayNights', 'Maximum nights (optional)'],
           ['feeName', 'Optional fee name'],
@@ -806,6 +808,7 @@ function ApartmentForm({
                   'maxStayNights',
                   'timezone',
                   'checkInTime',
+                  'checkOutTime',
                 ].includes(name)
               }
               name={name}
@@ -820,7 +823,9 @@ function ApartmentForm({
                   'feeAmount',
                 ].includes(name)
                   ? 'number'
-                  : 'text'
+                  : name === 'checkInTime' || name === 'checkOutTime'
+                    ? 'time'
+                    : 'text'
               }
               step={name === 'bathrooms' ? '0.5' : 'any'}
               defaultValue={

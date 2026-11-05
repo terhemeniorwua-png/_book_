@@ -10,14 +10,17 @@ The API uses Sequelize 6 with PostgreSQL and Umzug migrations. Models describe t
 
 ## Migrations
 
-| Migration                                                  | Contents                                                                                                                                                  |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `20261102000100-create-catalog-and-accounts`               | Admin accounts, apartments, amenities and join table, images, charges, availability blocks, guests, and contact inquiries.                                |
-| `20261102000200-create-bookings-payments-and-inventory`    | Bookings, payment transactions, booking status events, and inventory claims.                                                                              |
-| `20261102000300-add-inventory-exclusion-and-booking-audit` | PostgreSQL `btree_gist` exclusion constraint, hold expiry triggers, inventory synchronization, and status audit triggers.                                 |
-| `20261102000400-add-apartment-policies`                    | Public house rules and check-in, check-out, and cancellation policy fields.                                                                               |
-| `20261102000500-add-booking-access-and-checkout-data`      | Booking idempotency/access-token hashes, request fingerprints, special requests, and accepted-policy audit fields.                                        |
-| `20261102000600-add-paystack-integrity`                    | Payment attempt idempotency and authorization URL, refund/review states, one-active-attempt index, webhook deduplication, and payment state audit events. |
+| Migration                                                    | Contents                                                                                                                                                  |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261102000100-create-catalog-and-accounts`                 | Admin accounts, apartments, amenities and join table, images, charges, availability blocks, guests, and contact inquiries.                                |
+| `20261102000200-create-bookings-payments-and-inventory`      | Bookings, payment transactions, booking status events, and inventory claims.                                                                              |
+| `20261102000300-add-inventory-exclusion-and-booking-audit`   | PostgreSQL `btree_gist` exclusion constraint, hold expiry triggers, inventory synchronization, and status audit triggers.                                 |
+| `20261102000400-add-apartment-policies`                      | Public house rules and check-in, check-out, and cancellation policy fields.                                                                               |
+| `20261102000500-add-booking-access-and-checkout-data`        | Booking idempotency/access-token hashes, request fingerprints, special requests, and accepted-policy audit fields.                                        |
+| `20261102000600-add-paystack-integrity`                      | Payment attempt idempotency and authorization URL, refund/review states, one-active-attempt index, webhook deduplication, and payment state audit events. |
+| `20261102000700-create-admin-sessions-and-audit`             | Opaque administrator sessions and administrator audit events.                                                                                             |
+| `20261102000800-add-cancellations-refunds-and-notifications` | Customer cancellation tokens, apartment-local check-in schedule, cancellation/refund records, email notifications, and cancellation booking state.        |
+| `20261102000900-email-idempotency-and-checkout-time`         | Configurable apartment check-out time and unique email notification deduplication/provider message identifiers.                                           |
 
 Migration downs reverse their own schema changes. The shared `btree_gist` extension is intentionally left installed on rollback because other database objects may use it.
 Every added migration must also be statically imported and registered in `src/db/migrate.ts`; this keeps source TypeScript and compiled ESM execution consistent.
@@ -68,6 +71,8 @@ Public catalog endpoints return only published apartment rows and images. They o
 - `PAYSTACK_CALLBACK_URL`: frontend return route. Production requires HTTPS. Paystack appends `reference`; the API adds the non-secret booking reference. Browser return triggers server-side verification and is not itself proof of payment.
 - `PAYSTACK_WEBHOOK_URL`: public webhook route `/api/v1/payments/paystack/webhook`; register the same HTTPS URL in the Paystack dashboard. Signature validation uses the exact request bytes and `PAYSTACK_SECRET_KEY` (Paystack does not require a separate webhook secret).
 - `PAYMENT_RECONCILIATION_AGE_MINUTES`: age after which payment attempts are included by the operator reconciliation command; defaults to 30 minutes.
+- `EMAIL_PROVIDER_API_URL`, `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM_ADDRESS`: API-side Staywell email provider endpoint and credentials; endpoint defaults to Resend. Keep all three in the API secret manager. `SUPPORT_EMAIL_ADDRESS` is an optional customer contact included in Staywell emails.
+- `CUSTOMER_APP_URL`: public web origin used to build the secure cancellation link.
 - `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`: one-time provisioning inputs; supply through a secret manager or a secure, temporary shell environment and remove them immediately afterward. They do not belong in `.env.example`.
 
 Commands from the repository root:

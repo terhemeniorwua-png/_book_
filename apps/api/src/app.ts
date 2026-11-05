@@ -103,7 +103,7 @@ const safeBookingErrorMessages: Record<string, string> = {
   CHECK_IN_STARTED:
     'The scheduled check-in time has passed, so this booking can no longer be cancelled online.',
   CANCELLATION_DEADLINE_PASSED:
-    'The cancellation deadline has passed. This booking can no longer be cancelled online.',
+    'This booking is no longer eligible for online cancellation because the 24-hour cancellation deadline has passed. Please contact Staywell for assistance.',
   REFUND_NOT_FOUND: 'The refund could not be found.',
   REFUND_NOT_RETRYABLE: 'Only a failed refund can be retried.',
   REFUND_STATUS_UNVERIFIED:

@@ -38,6 +38,7 @@ production credentials into Git.
 | API     | `PAYSTACK_CURRENCY`, `PAYMENT_RECONCILIATION_AGE_MINUTES`                                        | Defaults to NGN/30                         | Defaults                                                                                                                     | NGN only; set reconciliation age for operations                                     |
 | API     | `CUSTOMER_APP_URL`                                                                               | Web origin used in email links             | Playwright origin if email delivery is exercised                                                                             | Canonical HTTPS web origin; no trailing path                                        |
 | API     | `EMAIL_PROVIDER_API_URL`, `EMAIL_PROVIDER_API_KEY`, `EMAIL_FROM_ADDRESS`                         | Optional; blank keeps notifications queued | Optional; mocked or omitted                                                                                                  | Set all three to enable guest and active-administrator transactional email delivery |
+| API     | `SUPPORT_EMAIL_ADDRESS`                                                                          | Optional support contact in customer email | Optional                                                                                                                     | Optional customer support address included in Staywell templates                    |
 | API     | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`                                                          | Optional; blank disables uploads           | Optional                                                                                                                     | Optional; use private bucket and workload identity                                  |
 | API     | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                                                       | Optional local credentials                 | Optional                                                                                                                     | Prefer provider workload identity; if keys are unavoidable, store in secret manager |
 | API     | `LOG_LEVEL`                                                                                      | Defaults to `info`                         | Defaults to `info`                                                                                                           | `info`/`warn`, JSON logs sent to hosting collector                                  |
@@ -58,6 +59,21 @@ notification rows remain `queued`. There is no monitoring SDK or monitoring
 secret; structured JSON logs go to stdout/stderr for collection by the hosting
 platform. Add a monitoring integration as a separately reviewed feature before
 relying on it operationally.
+
+Paystack receipt email is configured in the Paystack Dashboard, not by Staywell:
+open **Settings → Preferences** and enable transaction receipts for customers
+(or customers and the business). Set the support email under **Settings →
+Contact**. The backend supplies the guest email at transaction initialization
+and separately sends the Staywell confirmation after server-side verification.
+See Paystack's [receipt preferences](https://support.paystack.com/en/articles/2131010).
+
+Staywell email uses the existing API adapter, defaulting to
+`https://api.resend.com/emails`. Set `EMAIL_PROVIDER_API_URL`,
+`EMAIL_PROVIDER_API_KEY`, and `EMAIL_FROM_ADDRESS` in the API deployment
+environment to enable delivery; `SUPPORT_EMAIL_ADDRESS` is optional. Email
+events are deduplicated in PostgreSQL and transient provider errors are retried
+once using the same provider idempotency key. Keep these values out of the web
+deployment and source-controlled environment files.
 
 ## Build, start, migrate
 

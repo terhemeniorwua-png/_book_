@@ -55,6 +55,12 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     expect(models.BookingCancellation.associations.refund).toBeDefined();
     expect(models.BookingRefund.associations.payment).toBeDefined();
     expect(models.EmailNotification).toBeDefined();
+    expect(
+      models.EmailNotification.rawAttributes.deduplicationKey,
+    ).toBeDefined();
+    expect(
+      models.EmailNotification.rawAttributes.providerMessageId,
+    ).toBeDefined();
     expect(models.PaymentTransaction.associations.stateEvents).toBeDefined();
     expect(models.PaymentWebhookEvent).toBeDefined();
     expect(models.AdminAccount.associations.sessions).toBeDefined();
@@ -118,6 +124,19 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
           index.fields?.some(
             (field: { attribute: string }) => field.attribute === 'event_hash',
           ),
+      ),
+    ).toBe(true);
+    const emailIndexes = (await db
+      .getQueryInterface()
+      .showIndex('email_notifications', { transaction })) as Array<{
+      name: string;
+      unique?: boolean;
+    }>;
+    expect(
+      emailIndexes.some(
+        (index) =>
+          index.name === 'email_notifications_deduplication_key_uq' &&
+          index.unique,
       ),
     ).toBe(true);
     const slug = `unique-${crypto.randomUUID()}`;

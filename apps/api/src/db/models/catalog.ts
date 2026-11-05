@@ -216,6 +216,11 @@ export const Apartment = sequelize.define(
       defaultValue: '14:00:00',
       field: 'check_in_time',
     },
+    checkOutTime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: 'check_out_time',
+    },
   },
   {
     tableName: 'apartments',

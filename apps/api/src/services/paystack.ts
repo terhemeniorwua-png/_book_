@@ -23,6 +23,7 @@ import { resolveCancellationSchedule } from './cancellation-policy.js';
 import {
   sendAdminRefundOutcomeEmail,
   sendBookingConfirmationEmail,
+  sendRefundDelayedEmail,
   sendRefundFailedEmail,
   sendRefundSuccessfulEmail,
 } from './email.js';
@@ -1119,6 +1120,8 @@ export async function handlePaystackWebhook(
       return null;
     });
     if (refundChange?.changed) {
+      if (refundChange.nextStatus === 'processing')
+        void sendRefundDelayedEmail(refundChange.refundId);
       if (refundChange.nextStatus === 'successful') {
         void sendRefundSuccessfulEmail(refundChange.refundId);
         void sendAdminRefundOutcomeEmail(refundChange.refundId, 'successful');

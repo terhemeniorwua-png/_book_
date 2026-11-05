@@ -163,3 +163,24 @@ export function formatScheduledDateTime(
     ...options,
   }).format(value);
 }
+
+export function formatScheduledDateTimeWithZone(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat('en-NG', {
+    timeZone,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(value);
+}
+
+export function formatScheduledTimeWithZone(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat('en-NG', {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(value);
+}

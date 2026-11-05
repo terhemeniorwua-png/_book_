@@ -1,8 +1,11 @@
+import { createHash } from 'node:crypto';
 import { Op } from 'sequelize';
 import { env } from '../config/env.js';
+import { sequelize } from '../db/client.js';
 import {
   AdminAccount,
   Apartment,
+  ApartmentImage,
   Booking,
   BookingCancellation,
   BookingRefund,
@@ -10,8 +13,11 @@ import {
   Guest,
   PaymentTransaction,
 } from '../db/models/index.js';
+import { renderBookingConfirmationEmail } from './email-templates.js';
+import { deliverEmail } from './email-provider.js';
 import {
-  formatScheduledDateTime,
+  formatScheduledDateTimeWithZone,
+  formatScheduledTimeWithZone,
   resolveCancellationSchedule,
   type CancellationSchedule,
 } from './cancellation-policy.js';
@@ -22,11 +28,6 @@ type EmailMessage = {
   subject: string;
   html: string;
   text: string;
-};
-type DeliveryResult = {
-  delivered: boolean;
-  retryable: boolean;
-  errorCode: string | null;
 };
 type BookingEmailContext = {
   bookingId: string;
@@ -43,6 +44,9 @@ type BookingEmailContext = {
   amountPaid: string;
   currency: string;
   schedule: CancellationSchedule;
+  apartmentSummary?: string;
+  apartmentCoverImageUrl?: string | null;
+  checkOutTime?: string | null;
 };
 
 function escapeHtml(value: unknown) {
@@ -108,7 +112,7 @@ function summaryTable(context: BookingEmailContext) {
     <tr><td style="padding:7px 0;color:#686f69">Booking reference</td><td style="padding:7px 0;font-weight:bold;text-align:right">${escapeHtml(context.bookingReference)}</td></tr>
     <tr><td style="padding:7px 0;color:#686f69">Apartment</td><td style="padding:7px 0;font-weight:bold;text-align:right">${escapeHtml(context.apartmentName)}</td></tr>
     <tr><td style="padding:7px 0;color:#686f69">Location</td><td style="padding:7px 0;text-align:right">${escapeHtml(context.apartmentLocation)}</td></tr>
-    <tr><td style="padding:7px 0;color:#686f69">Check-in</td><td style="padding:7px 0;text-align:right">${escapeHtml(displayDate(context.checkIn))} at ${escapeHtml(formatScheduledDateTime(context.schedule.checkInAt, context.schedule.timeZone, { dateStyle: undefined, timeStyle: 'short' }))}</td></tr>
+    <tr><td style="padding:7px 0;color:#686f69">Check-in</td><td style="padding:7px 0;text-align:right">${escapeHtml(displayDate(context.checkIn))} at ${escapeHtml(formatScheduledTimeWithZone(context.schedule.checkInAt, context.schedule.timeZone))}</td></tr>
     <tr><td style="padding:7px 0;color:#686f69">Check-out</td><td style="padding:7px 0;text-align:right">${escapeHtml(displayDate(context.checkOut))}</td></tr>
     <tr><td style="padding:7px 0;color:#686f69">Guests / nights</td><td style="padding:7px 0;text-align:right">${context.guestCount} ${context.guestCount === 1 ? 'guest' : 'guests'} · ${context.nights} ${context.nights === 1 ? 'night' : 'nights'}</td></tr>
     <tr><td style="padding:7px 0;color:#686f69">Amount paid</td><td style="padding:7px 0;font-weight:bold;text-align:right">${escapeHtml(displayMoney(context.amountPaid, context.currency))}</td></tr>
@@ -123,50 +127,6 @@ function refundTable(refund: Row, originalReference: string) {
   </table>`;
 }
 
-export async function deliverEmail(
-  message: EmailMessage,
-): Promise<DeliveryResult> {
-  if (!env.EMAIL_PROVIDER_API_KEY || !env.EMAIL_FROM_ADDRESS)
-    return {
-      delivered: false,
-      retryable: true,
-      errorCode: 'EMAIL_PROVIDER_NOT_CONFIGURED',
-    };
-  try {
-    const response = await fetch(env.EMAIL_PROVIDER_API_URL, {
-      method: 'POST',
-      signal: AbortSignal.timeout(10_000),
-      headers: {
-        authorization: `Bearer ${env.EMAIL_PROVIDER_API_KEY}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: env.EMAIL_FROM_ADDRESS,
-        to: [message.to],
-        subject: message.subject,
-        html: message.html,
-        text: message.text,
-      }),
-    });
-    if (response.ok)
-      return { delivered: true, retryable: false, errorCode: null };
-    return {
-      delivered: false,
-      retryable: response.status >= 500 || response.status === 429,
-      errorCode:
-        response.status >= 500 || response.status === 429
-          ? 'EMAIL_PROVIDER_UNAVAILABLE'
-          : 'EMAIL_PROVIDER_REJECTED',
-    };
-  } catch {
-    return {
-      delivered: false,
-      retryable: true,
-      errorCode: 'EMAIL_PROVIDER_UNAVAILABLE',
-    };
-  }
-}
-
 async function sendAndRecord(
   type: string,
   recipient: string,
@@ -175,24 +135,67 @@ async function sendAndRecord(
   cancellationId: string | null = null,
 ) {
   if (!recipient) return;
-  const record = await EmailNotification.create({
-    bookingId,
-    cancellationId,
-    type,
-    recipient,
-    status: 'queued',
-    attempts: 0,
+  const deduplicationKey = createHash('sha256')
+    .update(
+      `${type}:${bookingId ?? ''}:${cancellationId ?? ''}:${recipient.toLowerCase()}`,
+    )
+    .digest('hex');
+  const [candidate] = await EmailNotification.findOrCreate({
+    where: { deduplicationKey },
+    defaults: {
+      bookingId,
+      cancellationId,
+      deduplicationKey,
+      type,
+      recipient,
+      status: 'queued',
+      attempts: 0,
+    },
   });
-  const delivery = await deliverEmail(message);
+  const record = await sequelize.transaction(async (transaction) => {
+    const locked = await EmailNotification.findByPk(
+      String(candidate.get('id')),
+      {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      },
+    );
+    if (!locked) return null;
+    const value = locked.get({ plain: true }) as Row;
+    const sendingIsStale =
+      value.status === 'sending' &&
+      Date.parse(String(value.updatedAt)) < Date.now() - 5 * 60_000;
+    if (
+      value.status === 'sent' ||
+      (value.status === 'sending' && !sendingIsStale)
+    )
+      return null;
+    await locked.update(
+      {
+        status: 'sending',
+        attempts: Number(value.attempts) + 1,
+      },
+      { transaction },
+    );
+    return locked;
+  });
+  if (!record) return;
+
+  const delivery = await deliverEmail({
+    ...message,
+    idempotencyKey: deduplicationKey,
+  });
   await record.update({
     status: delivery.delivered
       ? 'sent'
       : delivery.retryable
         ? 'queued'
         : 'failed',
-    attempts: 1,
     lastError: delivery.errorCode,
     sentAt: delivery.delivered ? new Date() : null,
+    providerMessageId: delivery.providerMessageId,
+    attempts:
+      Number(record.get('attempts')) + Math.max(0, delivery.attempts - 1),
   });
 }
 
@@ -248,7 +251,24 @@ async function loadBookingContext(
   const booking = (await Booking.findByPk(bookingId, {
     include: [
       { model: Guest, as: 'guest' },
-      { model: Apartment, as: 'apartment' },
+      {
+        model: Apartment,
+        as: 'apartment',
+        include: [
+          {
+            model: ApartmentImage,
+            as: 'images',
+            where: { isPublished: true },
+            required: false,
+            attributes: ['objectKey', 'isCover', 'position'],
+            separate: true,
+            order: [
+              ['isCover', 'DESC'],
+              ['position', 'ASC'],
+            ],
+          },
+        ],
+      },
     ],
   })) as
     | (import('sequelize').Model & {
@@ -259,17 +279,33 @@ async function loadBookingContext(
   const value = booking.get({ plain: true });
   const guest = (value.guest ?? {}) as Row;
   const apartment = (value.apartment ?? {}) as Row;
-  if (!guest.email || !apartment.name) return null;
+  if (
+    !guest.email ||
+    !apartment.name ||
+    value.status !== 'confirmed' ||
+    value.paymentStatus !== 'paid'
+  )
+    return null;
   const payment = await PaymentTransaction.findOne({
     where: {
       bookingId,
       provider: 'paystack',
-      status: { [Op.in]: ['succeeded', 'refund_pending', 'refunded'] },
+      status: 'succeeded',
       verifiedAt: { [Op.ne]: null },
     },
     order: [['createdAt', 'DESC']],
   });
   const paymentValue = payment?.get({ plain: true }) as Row | undefined;
+  if (!paymentValue) return null;
+  const snapshot =
+    value.acceptedPolicySnapshot &&
+    typeof value.acceptedPolicySnapshot === 'object'
+      ? (value.acceptedPolicySnapshot as Row)
+      : {};
+  const apartmentImages = (apartment.images ?? []) as Row[];
+  const coverImage =
+    apartmentImages.find((image) => image.isCover) ?? apartmentImages[0];
+  const objectKey = String(coverImage?.objectKey ?? '');
   return {
     bookingId,
     bookingReference: String(value.bookingReference),
@@ -296,6 +332,16 @@ async function loadBookingContext(
         checkInTime: apartment.checkInTime as string | null | undefined,
       },
     ),
+    apartmentSummary: String(apartment.shortDescription ?? ''),
+    apartmentCoverImageUrl: objectKey.startsWith('https://images.unsplash.com/')
+      ? objectKey
+      : null,
+    checkOutTime:
+      typeof snapshot.checkOutTime === 'string'
+        ? snapshot.checkOutTime
+        : typeof apartment.checkOutTime === 'string'
+          ? apartment.checkOutTime.slice(0, 5)
+          : null,
   };
 }
 
@@ -306,39 +352,37 @@ async function sendBookingConfirmation(
   const context = await loadBookingContext(bookingId);
   if (!context) return;
   const link = `${appBaseUrl()}/booking/cancel#token=${encodeURIComponent(cancellationToken)}`;
-  const deadline = formatScheduledDateTime(
+  const deadline = formatScheduledDateTimeWithZone(
     context.schedule.deadlineAt,
     context.schedule.timeZone,
   );
-  const subject = `Your Staywell booking is confirmed — ${context.bookingReference}`;
-  const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
-    <p style="margin:0 0 4px;font-size:15px;line-height:1.7">Your apartment booking is confirmed. We are looking forward to your stay.</p>
-    ${summaryTable(context)}
-    <div style="margin:20px 0;padding:16px;border-radius:12px;background:#f6f1e8">
-      <p style="margin:0 0 6px;font-size:13px;color:#686f69">Cancellation deadline</p>
-      <p style="margin:0;font-size:16px;font-weight:bold">${escapeHtml(deadline)}</p>
-      <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#686f69">You may submit a cancellation request until this time, which is at least 24 hours before your scheduled check-in. Opening the link below does not cancel your booking.</p>
-    </div>
-    ${context.specialRequests ? `<p style="margin:0 0 16px;font-size:14px"><strong>Special requests:</strong> ${escapeHtml(context.specialRequests)}</p>` : ''}
-    <p style="margin:20px 0 10px"><a href="${escapeHtml(link)}" style="display:inline-block;background:#183c32;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:999px;font-weight:bold">Unbook Apartment</a></p>
-    <p style="margin:0;font-size:12px;line-height:1.6;color:#686f69">The button opens a secure page where you must review the booking and explicitly confirm the cancellation. If the cancellation deadline has passed, the page will explain that the booking can no longer be cancelled online.</p>`;
+  const template = renderBookingConfirmationEmail({
+    customerName: context.guestName,
+    bookingReference: context.bookingReference,
+    apartmentName: context.apartmentName,
+    apartmentLocation: context.apartmentLocation,
+    apartmentSummary: context.apartmentSummary ?? '',
+    apartmentCoverImageUrl: context.apartmentCoverImageUrl ?? null,
+    checkInDate: context.checkIn,
+    checkInTime: formatScheduledTimeWithZone(
+      context.schedule.checkInAt,
+      context.schedule.timeZone,
+    ),
+    checkOutDate: context.checkOut,
+    checkOutTime: context.checkOutTime ?? null,
+    guestCount: context.guestCount,
+    amountPaid: context.amountPaid,
+    currency: context.currency,
+    cancellationDeadline: deadline,
+    cancellationUrl: link,
+    supportEmail: env.SUPPORT_EMAIL_ADDRESS ?? null,
+  });
   await sendAndRecord(
     'booking_confirmed',
     context.guestEmail,
     {
       to: context.guestEmail,
-      subject,
-      html: layout('Your stay is confirmed', body),
-      text: [
-        `Hello ${context.guestName},`,
-        `Your booking ${context.bookingReference} for ${context.apartmentName} is confirmed.`,
-        `Check-in: ${displayDate(context.checkIn)} at ${formatScheduledDateTime(context.schedule.checkInAt, context.schedule.timeZone, { dateStyle: undefined, timeStyle: 'short' })}`,
-        `Check-out: ${displayDate(context.checkOut)}`,
-        `Amount paid: ${displayMoney(context.amountPaid, context.currency)}`,
-        `Cancellation deadline: ${deadline}`,
-        `Unbook Apartment: ${link}`,
-        'Opening the link does not cancel your booking; you must confirm on the secure page.',
-      ].join('\n\n'),
+      ...template,
     },
     context.bookingId,
   );
@@ -420,7 +464,7 @@ export async function sendCancellationReceivedEmail(cancellationId: string) {
     const loaded = await loadCancellationContext(cancellationId);
     if (!loaded) return;
     const { context } = loaded;
-    const subject = `We received your unbooking request — ${context.bookingReference}`;
+    const subject = 'Staywell — Your Cancellation Request Has Been Received';
     const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
       <p style="margin:0 0 12px;font-size:15px;line-height:1.7">We have received your request to unbook <strong>${escapeHtml(context.apartmentName)}</strong>. Your refund is being processed or reviewed by our team.</p>
       ${summaryTable(context)}
@@ -451,7 +495,7 @@ export async function sendCancellationCompletedEmail(cancellationId: string) {
     const loaded = await loadCancellationContext(cancellationId);
     if (!loaded) return;
     const { context } = loaded;
-    const subject = `Your Staywell booking has been cancelled — ${context.bookingReference}`;
+    const subject = 'Staywell — Your Apartment Booking Has Been Cancelled';
     const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
       <p style="margin:0 0 12px;font-size:15px;line-height:1.7">Your booking for <strong>${escapeHtml(context.apartmentName)}</strong> has been successfully cancelled. The dates are no longer reserved for you.</p>
       ${summaryTable(context)}
@@ -545,7 +589,7 @@ export async function sendRefundSuccessfulEmail(refundId: string) {
     const loaded = await loadRefundContext(refundId);
     if (!loaded) return;
     const { context } = loaded;
-    const subject = `Your Staywell refund has been processed — ${context.bookingReference}`;
+    const subject = 'Staywell — Your Refund Has Been Processed';
     const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
       <p style="margin:0 0 12px;font-size:15px;line-height:1.7">Paystack has confirmed your refund for the cancelled booking at <strong>${escapeHtml(context.apartmentName)}</strong>.</p>
       ${refundTable(loaded.refund, loaded.originalReference)}
@@ -577,7 +621,7 @@ export async function sendRefundFailedEmail(refundId: string) {
     const loaded = await loadRefundContext(refundId);
     if (!loaded) return;
     const { context } = loaded;
-    const subject = `Update on your Staywell refund — ${context.bookingReference}`;
+    const subject = 'Staywell — Update on Your Booking Refund';
     const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
       <p style="margin:0 0 12px;font-size:15px;line-height:1.7">Your booking for <strong>${escapeHtml(context.apartmentName)}</strong> is cancelled, but the refund is experiencing a problem. Staywell is addressing it.</p>
       ${refundTable(loaded.refund, loaded.originalReference)}
@@ -593,6 +637,38 @@ export async function sendRefundFailedEmail(refundId: string) {
           `Hello ${context.guestName},`,
           `Your booking ${context.bookingReference} is cancelled, but the refund is experiencing a problem. Staywell is addressing it.`,
           'Our team will investigate with Paystack and update you. No new payment will be taken.',
+        ].join('\n\n'),
+      },
+      context.bookingId,
+      loaded.cancellationId || null,
+    );
+  } catch {
+    // Do not leak provider or notification details through logs.
+  }
+}
+
+export async function sendRefundDelayedEmail(refundId: string) {
+  try {
+    const loaded = await loadRefundContext(refundId);
+    if (!loaded) return;
+    const { context } = loaded;
+    const subject = 'Staywell — Update on Your Booking Refund';
+    const body = `<p style="margin:0 0 12px;font-size:16px">Hello ${escapeHtml(context.guestName)},</p>
+      <p style="margin:0 0 12px;font-size:15px;line-height:1.7">Paystack is still processing the refund for your cancelled booking at <strong>${escapeHtml(context.apartmentName)}</strong>. Staywell is monitoring the update and will let you know when Paystack confirms the outcome.</p>
+      ${refundTable(loaded.refund, loaded.originalReference)}
+      <p style="margin:0;font-size:13px;line-height:1.7;color:#686f69">Your apartment booking remains cancelled. You do not need to submit another cancellation request.</p>`;
+    await sendAndRecord(
+      'refund_delayed',
+      context.guestEmail,
+      {
+        to: context.guestEmail,
+        subject,
+        html: layout('Update on your booking refund', body),
+        text: [
+          `Hello ${context.guestName},`,
+          `Paystack is still processing the refund for your cancelled booking ${context.bookingReference}. Staywell is monitoring the update.`,
+          `Original payment reference: ${loaded.originalReference}`,
+          'Your apartment booking remains cancelled. We will email you when Paystack confirms the outcome.',
         ].join('\n\n'),
       },
       context.bookingId,

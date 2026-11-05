@@ -98,6 +98,10 @@ const commonApartment = {
     .trim()
     .pattern(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/)
     .allow(null, ''),
+  checkOutTime: Joi.string()
+    .trim()
+    .pattern(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/)
+    .allow(null, ''),
   amenityIds: Joi.array().items(Joi.string().uuid()).unique().max(50),
   charges: Joi.array()
     .items(
@@ -304,6 +308,7 @@ function serializeApartment(value: Row) {
     cancellationPolicy: value.cancellationPolicy,
     timezone: value.timezone,
     checkInTime: value.checkInTime,
+    checkOutTime: value.checkOutTime,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
     amenities: ((value.amenities ?? []) as Row[]).map((amenity) => ({
@@ -403,6 +408,7 @@ export async function createAdminApartment(input: Row, admin: AdminContext) {
   const values = { ...input };
   if (values.timezone === '') values.timezone = null;
   if (values.checkInTime === '') values.checkInTime = null;
+  if (values.checkOutTime === '') values.checkOutTime = null;
   const amenityIds = (values.amenityIds ?? []) as string[];
   const charges = (values.charges ?? []) as Row[];
   delete values.amenityIds;
@@ -442,6 +448,7 @@ export async function updateAdminApartment(
   const values = { ...input };
   if (values.timezone === '') values.timezone = null;
   if (values.checkInTime === '') values.checkInTime = null;
+  if (values.checkOutTime === '') values.checkOutTime = null;
   const amenityIds = values.amenityIds as string[] | undefined;
   const charges = values.charges as Row[] | undefined;
   delete values.amenityIds;

@@ -511,6 +511,17 @@ export const EmailNotification = sequelize.define(
       allowNull: true,
       field: 'cancellation_id',
     },
+    deduplicationKey: {
+      type: DataTypes.STRING(160),
+      allowNull: true,
+      unique: true,
+      field: 'deduplication_key',
+    },
+    providerMessageId: {
+      type: DataTypes.STRING(160),
+      allowNull: true,
+      field: 'provider_message_id',
+    },
     type: { type: DataTypes.STRING(60), allowNull: false },
     recipient: { type: DataTypes.STRING(320), allowNull: false },
     status: {
