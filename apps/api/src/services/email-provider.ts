@@ -52,24 +52,26 @@ export async function deliverEmail(
   'content-type': 'application/json',
   accept: 'application/json',
 },
-        body: JSON.stringify({
-          from: configuration.fromAddress,
-          to: [message.to],
+          body: JSON.stringify({
+          sender: { email: configuration.fromAddress },
+          to: [{ email: message.to }],
           subject: message.subject,
-          html: message.html,
-          text: message.text,
+          htmlContent: message.html,
+          textContent: message.text,
         }),
       });
       if (response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          id?: unknown;
+          const payload = (await response.json().catch(() => null)) as {
+          messageId?: unknown;
         } | null;
         return {
           accepted: true,
           retryable: false,
           errorCode: null,
           providerMessageId:
-            typeof payload?.id === 'string' ? payload.id.slice(0, 160) : null,
+            typeof payload?.messageId === 'string'
+              ? payload.messageId.slice(0, 160)
+              : null,
           providerStatus: response.status,
           attempts: attempt + 1,
         };
