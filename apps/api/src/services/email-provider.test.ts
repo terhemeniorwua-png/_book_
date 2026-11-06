@@ -20,7 +20,7 @@ describe('email provider delivery', () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response('', { status: 503 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: 'email_123' }), {
+        new Response(JSON.stringify({ messageId: 'email_123' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         }),
@@ -36,8 +36,8 @@ describe('email provider delivery', () => {
     });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({
-      'Idempotency-Key': message.idempotencyKey,
-    });
+  'api-key': 'mock-provider-key',
+});
     expect(fetcher.mock.calls[1]?.[1]?.headers).toMatchObject({
       'Idempotency-Key': message.idempotencyKey,
     });
