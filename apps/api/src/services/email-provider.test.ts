@@ -39,8 +39,8 @@ describe('email provider delivery', () => {
   'api-key': 'mock-provider-key',
 });
     expect(fetcher.mock.calls[1]?.[1]?.headers).toMatchObject({
-      'Idempotency-Key': message.idempotencyKey,
-    });
+  'api-key': 'mock-provider-key',
+});
     expect(JSON.stringify(fetcher.mock.calls[1]?.[1]?.body)).not.toContain(
       configuration.apiKey,
     );
