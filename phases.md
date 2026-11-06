@@ -111,6 +111,15 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [ ] Configure production observability, backups, rate limits, security headers, deployment, and operational runbooks.
 - [ ] Acceptance: production build, end-to-end critical path, recovery procedure, and deployment configuration are verified.
 
+## Phase 11 — Terms, privacy, and recorded consent — In progress
+
+- [x] Publish the responsive `/terms-and-privacy` page with Terms & Conditions and Privacy Notice sections, navigation anchors, a last-updated date, and Staywell design styling.
+- [x] Replace placeholder footer policy links; link the policies in booking acceptance and confirmation emails.
+- [x] Require both current policy acknowledgements in the booking frontend and backend; persist separate versions and timestamps using the existing booking model plus an additive migration.
+- [x] Document policy version updates, data practices found in the app, and owner/legal approval items.
+- [ ] Apply and verify the new migration and booking acceptance persistence against a disposable PostgreSQL database; run full browser and workspace checks.
+- [ ] Owner approves legal wording, supplies a verified customer/privacy contact route, approves the cancellation refund policy, and establishes a retention schedule before the documents are treated as final.
+
 ## Phase 1 outstanding manual configuration
 
 - Provide PostgreSQL connection settings and Paystack sandbox credentials in local ignored environment files before enabling those integrations.

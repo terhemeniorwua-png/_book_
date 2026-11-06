@@ -17,6 +17,8 @@ const input = {
   currency: 'NGN',
   cancellationDeadline: '19 November 2030 at 2:00 PM',
   cancellationUrl: 'https://staywell.example/booking/cancel#token=secret-token',
+  termsUrl: 'https://staywell.example/terms-and-privacy#terms-and-conditions',
+  privacyUrl: 'https://staywell.example/terms-and-privacy#privacy-notice',
   supportEmail: 'support@staywell.example',
 };
 
@@ -45,7 +47,11 @@ describe('Staywell booking confirmation email template', () => {
     expect(email.html).toContain('Unbook Apartment');
     expect(email.html).toContain(input.cancellationUrl);
     expect(email.html).toContain('support@staywell.example');
+    expect(email.html).toContain(input.termsUrl);
+    expect(email.html).toContain(input.privacyUrl);
     expect(email.text).toContain(input.cancellationUrl);
+    expect(email.text).toContain(input.termsUrl);
+    expect(email.text).toContain(input.privacyUrl);
     expect(email.text).toContain(
       'Payment status: Paid and verified by Paystack',
     );

@@ -1,9 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCallback, useState, type FormEvent } from 'react';
 import type { ApartmentDetail } from '@/lib/apartments';
 import { getApiBaseUrl } from '@/lib/apartments';
+import { POLICY_VERSIONS } from '@/lib/policy-versions';
 import {
   createSecretHex,
   guestInformationSchema,
@@ -68,6 +70,9 @@ export function BookingForm({
       phone: form.get('phone'),
       specialRequests: form.get('specialRequests') ?? '',
       acceptedTerms: form.get('acceptedTerms') === 'on',
+      acceptedPrivacyNotice: form.get('acceptedTerms') === 'on',
+      acceptedTermsVersion: POLICY_VERSIONS.terms,
+      privacyNoticeVersion: POLICY_VERSIONS.privacy,
     });
     if (!parsed.success) {
       setErrors(
@@ -112,6 +117,9 @@ export function BookingForm({
           phone: parsed.data.phone.trim(),
           specialRequests: parsed.data.specialRequests,
           acceptedTerms: parsed.data.acceptedTerms,
+          acceptedTermsVersion: parsed.data.acceptedTermsVersion,
+          acceptedPrivacyNotice: parsed.data.acceptedPrivacyNotice,
+          privacyNoticeVersion: parsed.data.privacyNoticeVersion,
         }),
       });
       const body: unknown = await response.json();
@@ -305,7 +313,6 @@ export function BookingForm({
                   ) : null}
                   <label className="mt-4 flex cursor-pointer items-start gap-3 text-ink">
                     <input
-                      required
                       name="acceptedTerms"
                       type="checkbox"
                       className="mt-1 size-4 accent-forest"
@@ -315,8 +322,21 @@ export function BookingForm({
                       }
                     />
                     <span>
-                      I have reviewed the booking and cancellation information
-                      shown above.
+                      I have read and agree to Staywell&apos;s{' '}
+                      <Link
+                        href="/terms-and-privacy#terms-and-conditions"
+                        className="font-semibold text-forest underline underline-offset-2"
+                      >
+                        Terms &amp; Conditions
+                      </Link>{' '}
+                      and acknowledge its{' '}
+                      <Link
+                        href="/terms-and-privacy#privacy-notice"
+                        className="font-semibold text-forest underline underline-offset-2"
+                      >
+                        Privacy Notice
+                      </Link>
+                      .
                     </span>
                   </label>
                   {errors.acceptedTerms ? (

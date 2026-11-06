@@ -14,6 +14,8 @@ export type BookingConfirmationEmailInput = {
   currency: string;
   cancellationDeadline: string;
   cancellationUrl: string;
+  termsUrl: string;
+  privacyUrl: string;
   supportEmail: string | null;
 };
 
@@ -98,7 +100,8 @@ export function renderBookingConfirmationEmail(
      ${details}
      <div style="margin:20px 0;padding:16px;border-left:4px solid #C6A36B;background:#F6F1E8"><p style="margin:0 0 6px;font-weight:bold">Cancellation deadline</p><p style="margin:0;font-size:15px">${escapeHtml(input.cancellationDeadline)}</p><p style="margin:8px 0 0;font-size:13px;line-height:1.65">You may request to unbook your apartment if your request is submitted at least 24 hours before scheduled check-in. Clicking the button does not cancel your booking; you will review the details and explicitly confirm first.</p></div>
      <p style="margin:22px 0;text-align:center"><a href="${escapeHtml(input.cancellationUrl)}" style="display:inline-block;background:#183C32;color:#FFFFFF;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px;font-weight:bold">Unbook Apartment</a></p>
-     <p style="margin:0;font-size:14px;line-height:1.7">Thank you for choosing Staywell.<br>The Staywell Team</p>${support}`,
+     <p style="margin:0;font-size:14px;line-height:1.7">Thank you for choosing Staywell.<br>The Staywell Team</p>${support}
+     <p style="margin:16px 0 0;font-size:12px;line-height:1.7"><a href="${escapeHtml(input.termsUrl)}" style="color:#183C32">Terms &amp; Conditions</a> · <a href="${escapeHtml(input.privacyUrl)}" style="color:#183C32">Privacy Notice</a></p>`,
   );
   const text = [
     `Hello ${input.customerName},`,
@@ -115,6 +118,8 @@ export function renderBookingConfirmationEmail(
     `Cancellation deadline: ${input.cancellationDeadline}`,
     'You may request to unbook your apartment if your request is submitted at least 24 hours before scheduled check-in. Clicking the link does not cancel your booking; you must explicitly confirm.',
     `Unbook Apartment: ${input.cancellationUrl}`,
+    `Terms & Conditions: ${input.termsUrl}`,
+    `Privacy Notice: ${input.privacyUrl}`,
     ...(input.supportEmail ? [`Staywell support: ${input.supportEmail}`] : []),
     'Thank you for choosing Staywell. The Staywell Team.',
   ].filter(Boolean);

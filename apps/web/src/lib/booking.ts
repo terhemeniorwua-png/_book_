@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { POLICY_VERSIONS } from './policy-versions';
 
 const validDateOnly = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -27,8 +28,13 @@ export const guestInformationSchema = z.object({
   phone: z.string().trim().min(7, 'Enter a valid phone number.').max(32),
   specialRequests: z.string().trim().max(500).optional().default(''),
   acceptedTerms: z.literal(true, {
-    error: 'Accept the booking terms to continue.',
+    error: 'Agree to the Terms & Conditions and Privacy Notice to continue.',
   }),
+  acceptedPrivacyNotice: z.literal(true, {
+    error: 'Acknowledge the Privacy Notice to continue.',
+  }),
+  acceptedTermsVersion: z.literal(POLICY_VERSIONS.terms),
+  privacyNoticeVersion: z.literal(POLICY_VERSIONS.privacy),
 });
 
 export const bookingCreationSchema = z.object({

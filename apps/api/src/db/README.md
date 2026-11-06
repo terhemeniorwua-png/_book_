@@ -21,6 +21,7 @@ The API uses Sequelize 6 with PostgreSQL and Umzug migrations. Models describe t
 | `20261102000700-create-admin-sessions-and-audit`             | Opaque administrator sessions and administrator audit events.                                                                                             |
 | `20261102000800-add-cancellations-refunds-and-notifications` | Customer cancellation tokens, apartment-local check-in schedule, cancellation/refund records, email notifications, and cancellation booking state.        |
 | `20261102000900-email-idempotency-and-checkout-time`         | Configurable apartment check-out time and unique email notification deduplication/provider message identifiers.                                           |
+| `20261106001000-add-privacy-notice-acceptance`               | Privacy Notice acknowledgement timestamp and accepted policy version on bookings.                                                                         |
 
 Migration downs reverse their own schema changes. The shared `btree_gist` extension is intentionally left installed on rollback because other database objects may use it.
 Every added migration must also be statically imported and registered in `src/db/migrate.ts`; this keeps source TypeScript and compiled ESM execution consistent.
@@ -30,6 +31,7 @@ Every added migration must also be statically imported and registered in `src/db
 - `Apartment` has many `ApartmentImage`, `ApartmentCharge`, `AvailabilityBlock`, `Booking`, and inventory claims.
 - `Apartment` and `Amenity` are many-to-many through `ApartmentAmenity`.
 - `Booking` belongs to one apartment and one `Guest`; a guest can have multiple bookings.
+- `Booking.terms_accepted_at` and `terms_version` record the accepted Terms & Conditions. `privacy_notice_acknowledged_at` and `privacy_notice_version` separately record the Privacy Notice acknowledgement and version.
 - `Booking` has many `PaymentTransaction` rows and status events. Reservation `status` and `payment_status` are separate state machines.
 - `PaymentTransaction` has immutable `PaymentStateEvent` history. Signed provider deliveries are deduplicated in `PaymentWebhookEvent` by a SHA-256 digest of the exact raw body.
 - An availability block belongs to an apartment and can record its creating administrator.

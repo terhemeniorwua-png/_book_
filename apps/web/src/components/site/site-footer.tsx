@@ -72,16 +72,16 @@ export function SiteFooter() {
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link
-              href="#policies"
+              href="/terms-and-privacy#privacy-notice"
               className="underline decoration-white/25 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime"
             >
-              Privacy notice · coming soon
+              Privacy Notice
             </Link>
             <Link
-              href="#policies"
+              href="/terms-and-privacy#terms-and-conditions"
               className="underline decoration-white/25 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime"
             >
-              Terms of stay · coming soon
+              Terms &amp; Conditions
             </Link>
           </div>
         </div>

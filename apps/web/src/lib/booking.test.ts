@@ -7,6 +7,7 @@ import {
   parsePaymentVerification,
   staySelectionSchema,
 } from './booking';
+import { POLICY_VERSIONS } from './policy-versions';
 
 describe('booking forms', () => {
   it('accepts a valid stay and rejects reversed or invalid date ranges', () => {
@@ -40,11 +41,32 @@ describe('booking forms', () => {
       phone: '+2348031234567',
       specialRequests: 'Quiet room',
       acceptedTerms: true,
+      acceptedPrivacyNotice: true,
+      acceptedTermsVersion: POLICY_VERSIONS.terms,
+      privacyNoticeVersion: POLICY_VERSIONS.privacy,
     };
     expect(guestInformationSchema.safeParse(valid).success).toBe(true);
     expect(
       guestInformationSchema.safeParse({ ...valid, acceptedTerms: false })
         .success,
+    ).toBe(false);
+    expect(
+      guestInformationSchema.safeParse({
+        ...valid,
+        acceptedPrivacyNotice: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      guestInformationSchema.safeParse({
+        ...valid,
+        acceptedTermsVersion: 'booking-terms-v2',
+      }).success,
+    ).toBe(false);
+    expect(
+      guestInformationSchema.safeParse({
+        ...valid,
+        privacyNoticeVersion: 'privacy-notice-v2',
+      }).success,
     ).toBe(false);
     expect(
       guestInformationSchema.safeParse({ ...valid, email: 'bad' }).success,

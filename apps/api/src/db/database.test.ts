@@ -56,6 +56,10 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
     expect(models.BookingRefund.associations.payment).toBeDefined();
     expect(models.EmailNotification).toBeDefined();
     expect(
+      models.Booking.rawAttributes.privacyNoticeAcknowledgedAt,
+    ).toBeDefined();
+    expect(models.Booking.rawAttributes.privacyNoticeVersion).toBeDefined();
+    expect(
       models.EmailNotification.rawAttributes.deduplicationKey,
     ).toBeDefined();
     expect(
@@ -413,6 +417,9 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
       phone: '08031234567',
       specialRequests: 'A quiet room, please.',
       acceptedTerms: true,
+      acceptedTermsVersion: 'booking-terms-v1',
+      acceptedPrivacyNotice: true,
+      privacyNoticeVersion: 'privacy-notice-v1',
     };
 
     try {
@@ -467,6 +474,12 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
         : null;
       expect(storedGuest?.get('email')).toBe('ada.guest@example.test');
       expect(storedGuest?.get('phone')).toBe('+2348031234567');
+      expect(storedBooking?.get('termsVersion')).toBe('booking-terms-v1');
+      expect(storedBooking?.get('termsAcceptedAt')).toBeTruthy();
+      expect(storedBooking?.get('privacyNoticeVersion')).toBe(
+        'privacy-notice-v1',
+      );
+      expect(storedBooking?.get('privacyNoticeAcknowledgedAt')).toBeTruthy();
       expect(storedBooking?.get('acceptedPolicySnapshot')).toEqual({
         checkInPolicy: null,
         checkOutPolicy: null,
@@ -520,6 +533,25 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
             .post('/api/v1/bookings')
             .set(headers)
             .send({ ...payload, acceptedTerms: false })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(bookingApp)
+            .post('/api/v1/bookings')
+            .set(headers)
+            .send({ ...payload, acceptedPrivacyNotice: false })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await request(bookingApp)
+            .post('/api/v1/bookings')
+            .set(headers)
+            .send({
+              ...payload,
+              acceptedTermsVersion: 'newer-unaccepted-version',
+            })
         ).status,
       ).toBe(400);
       expect(
@@ -771,6 +803,9 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
       email: 'race@example.test',
       phone: '08031234567',
       acceptedTerms: true,
+      acceptedTermsVersion: 'booking-terms-v1',
+      acceptedPrivacyNotice: true,
+      privacyNoticeVersion: 'privacy-notice-v1',
     };
     const makeHeaders = (suffix: string) => ({
       'Idempotency-Key': suffix.repeat(64),

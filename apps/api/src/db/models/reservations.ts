@@ -90,6 +90,16 @@ export const Booking = sequelize.define(
       allowNull: true,
       field: 'terms_version',
     },
+    privacyNoticeAcknowledgedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'privacy_notice_acknowledged_at',
+    },
+    privacyNoticeVersion: {
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: 'privacy_notice_version',
+    },
     acceptedPolicySnapshot: {
       type: DataTypes.JSONB,
       allowNull: false,

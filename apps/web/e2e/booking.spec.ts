@@ -63,9 +63,7 @@ async function submitGuest(page: Page, email = 'guest@example.test') {
   await page.getByLabel('Full name').fill('Alex Guest');
   await page.getByLabel('Email address').fill(email);
   await page.getByLabel('Phone number').fill('+2348012345678');
-  await page
-    .getByLabel(/I have reviewed the booking and cancellation information/)
-    .check();
+  await page.getByLabel(/I have read and agree to Staywell's/).check();
   await page
     .getByRole('button', { name: 'Review booking and payment' })
     .click();
@@ -86,6 +84,30 @@ async function mockPaystackReturn(page: Page) {
 
 test.beforeEach(async ({ request }) => {
   await request.post(`${apiOrigin}/__test/reset`);
+});
+
+test('policy page provides both readable policy sections and return navigation', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/terms-and-privacy');
+  await expect(
+    page.getByRole('heading', {
+      name: 'Terms & Conditions and Privacy Notice',
+    }),
+  ).toBeVisible();
+  await expect(page.locator('#terms-bookings')).toContainText(
+    'A booking is confirmed only after the backend verifies successful payment',
+  );
+  await expect(page.locator('#privacy-notice')).toContainText(
+    'Nigeria Data Protection Act',
+  );
+  await expect(
+    page.getByRole('link', { name: 'Return to Staywell' }),
+  ).toHaveAttribute('href', '/');
+  await expect(
+    page.getByRole('link', { name: 'Privacy Notice' }).first(),
+  ).toHaveAttribute('href', '#privacy-notice');
 });
 
 test('completes a guest booking and confirms only after mocked payment verification', async ({
@@ -202,13 +224,41 @@ test('rejects invalid guest details before creating a booking', async ({
   await page.getByLabel('Full name').fill('Alex Guest');
   await page.getByLabel('Email address').fill('alex@example.test');
   await page.getByLabel('Phone number').fill('bad');
-  await page
-    .getByLabel(/I have reviewed the booking and cancellation information/)
-    .check();
+  await page.getByLabel(/I have read and agree to Staywell's/).check();
   await page
     .getByRole('button', { name: 'Review booking and payment' })
     .click();
   await expect(page.getByText('Enter a valid phone number.')).toBeVisible();
+  const state = (await (
+    await request.get(`${apiOrigin}/__test/state`)
+  ).json()) as { bookings: number };
+  expect(state.bookings).toBe(0);
+});
+
+test('requires policy acceptance and links both documents from booking', async ({
+  page,
+  request,
+}) => {
+  await openBooking(page);
+  await page.getByLabel('Full name').fill('Alex Guest');
+  await page.getByLabel('Email address').fill('alex@example.test');
+  await page.getByLabel('Phone number').fill('+2348012345678');
+  const policyCheckbox = page.getByLabel(/I have read and agree to Staywell's/);
+  await expect(policyCheckbox).not.toBeChecked();
+  await expect(
+    page.getByRole('link', { name: 'Terms & Conditions' }),
+  ).toHaveAttribute('href', '/terms-and-privacy#terms-and-conditions');
+  await expect(
+    page.getByRole('link', { name: 'Privacy Notice' }),
+  ).toHaveAttribute('href', '/terms-and-privacy#privacy-notice');
+  await page
+    .getByRole('button', { name: 'Review booking and payment' })
+    .click();
+  await expect(
+    page.getByText(
+      'Agree to the Terms & Conditions and Privacy Notice to continue.',
+    ),
+  ).toBeVisible();
   const state = (await (
     await request.get(`${apiOrigin}/__test/state`)
   ).json()) as { bookings: number };

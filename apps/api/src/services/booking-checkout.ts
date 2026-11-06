@@ -18,7 +18,8 @@ import {
 } from './cancellation-policy.js';
 
 const MONEY_LIMIT_CENTS = 999_999_999_999n;
-const TERMS_VERSION = 'booking-terms-v1';
+export const TERMS_VERSION = 'booking-terms-v1';
+export const PRIVACY_NOTICE_VERSION = 'privacy-notice-v1';
 const HOLD_MINUTES = 15;
 
 export class BookingFlowError extends Error {
@@ -42,6 +43,9 @@ type BookingInput = {
   phone: string;
   specialRequests?: string;
   acceptedTerms: true;
+  acceptedTermsVersion: typeof TERMS_VERSION;
+  acceptedPrivacyNotice: true;
+  privacyNoticeVersion: typeof PRIVACY_NOTICE_VERSION;
 };
 
 type Attempt = { idempotencyKey: string; accessToken: string };
@@ -323,6 +327,9 @@ function fingerprint(input: BookingInput) {
       phone: input.phone,
       specialRequests: input.specialRequests ?? '',
       acceptedTerms: input.acceptedTerms,
+      acceptedTermsVersion: input.acceptedTermsVersion,
+      acceptedPrivacyNotice: input.acceptedPrivacyNotice,
+      privacyNoticeVersion: input.privacyNoticeVersion,
     }),
   );
 }
@@ -564,7 +571,9 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
           requestFingerprint,
           specialRequests: input.specialRequests ?? null,
           termsAcceptedAt: new Date(),
-          termsVersion: TERMS_VERSION,
+          termsVersion: input.acceptedTermsVersion,
+          privacyNoticeAcknowledgedAt: new Date(),
+          privacyNoticeVersion: input.privacyNoticeVersion,
           acceptedPolicySnapshot: {
             checkInPolicy: property.checkInPolicy,
             checkOutPolicy: property.checkOutPolicy,
@@ -698,6 +707,9 @@ export const createBookingBodySchema = Joi.object({
   phone: Joi.string().trim().min(7).max(32).required(),
   specialRequests: Joi.string().trim().max(500).allow('', null),
   acceptedTerms: Joi.boolean().valid(true).required(),
+  acceptedTermsVersion: Joi.string().valid(TERMS_VERSION).required(),
+  acceptedPrivacyNotice: Joi.boolean().valid(true).required(),
+  privacyNoticeVersion: Joi.string().valid(PRIVACY_NOTICE_VERSION).required(),
 }).unknown(false);
 
 export const bookingReferenceParamsSchema = Joi.object({

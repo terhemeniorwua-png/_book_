@@ -12,6 +12,7 @@ import * as paystackIntegrity from './migrations/20261102000600-add-paystack-int
 import * as adminSessionsAndAudit from './migrations/20261102000700-create-admin-sessions-and-audit.js';
 import * as cancellationsRefundsAndNotifications from './migrations/20261102000800-add-cancellations-refunds-and-notifications.js';
 import * as emailIdempotencyAndCheckoutTime from './migrations/20261102000900-email-idempotency-and-checkout-time.js';
+import * as privacyNoticeAcceptance from './migrations/20261106001000-add-privacy-notice-acceptance.js';
 
 export function createMigrator(sequelize: Sequelize = defaultSequelize) {
   return new Umzug({
@@ -60,6 +61,11 @@ export function createMigrator(sequelize: Sequelize = defaultSequelize) {
         name: '20261102000900-email-idempotency-and-checkout-time',
         up: emailIdempotencyAndCheckoutTime.up,
         down: emailIdempotencyAndCheckoutTime.down,
+      },
+      {
+        name: '20261106001000-add-privacy-notice-acceptance',
+        up: privacyNoticeAcceptance.up,
+        down: privacyNoticeAcceptance.down,
       },
     ],
     context: sequelize.getQueryInterface(),

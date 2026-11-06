@@ -183,7 +183,11 @@ async function sendAndRecord(
   if (!record) return;
 
   logger.info(
-    { event: 'email_dispatch_attempted', notificationId: record.get('id'), type },
+    {
+      event: 'email_dispatch_attempted',
+      notificationId: record.get('id'),
+      type,
+    },
     'Email dispatch attempted',
   );
   const delivery = await deliverEmail({
@@ -406,6 +410,8 @@ async function sendBookingConfirmation(
     currency: context.currency,
     cancellationDeadline: deadline,
     cancellationUrl: link,
+    termsUrl: `${appBaseUrl()}/terms-and-privacy#terms-and-conditions`,
+    privacyUrl: `${appBaseUrl()}/terms-and-privacy#privacy-notice`,
     supportEmail: env.SUPPORT_EMAIL_ADDRESS ?? null,
   });
   await sendAndRecord(
