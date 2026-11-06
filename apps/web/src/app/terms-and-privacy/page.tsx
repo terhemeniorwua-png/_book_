@@ -114,6 +114,18 @@ export default function TermsAndPrivacyPage() {
             >
               Retention and your choices
             </a>
+            <a
+              className="text-forest underline-offset-4 hover:underline"
+              href="#cookie-policy"
+            >
+              Cookie Policy
+            </a>
+            <a
+              className="pl-3 text-muted hover:text-ink"
+              href="#cookie-categories"
+            >
+              Cookies in use
+            </a>
           </nav>
         </aside>
 
@@ -319,8 +331,8 @@ export default function TermsAndPrivacyPage() {
               advertising identifiers. The administrator area uses essential
               session and CSRF cookies for administrator sign-in and request
               protection. The application does not currently include an
-              analytics or advertising tracking integration, and no
-              cookie-consent tool is present.
+              analytics or advertising tracking integration. Cookie choices are
+              stored in local storage rather than a cookie.
             </p>
             <p>
               API operational logs may include request identifiers,
@@ -338,6 +350,81 @@ export default function TermsAndPrivacyPage() {
               obligations, protect the service and prevent abuse, or rely on
               consent where it is the appropriate legal basis. The owner should
               confirm and document the applicable legal basis for each purpose.
+            </p>
+          </Section>
+
+          <Section id="cookie-policy" title="Cookie Policy">
+            <p>
+              A cookie is a small value stored by a website in your browser.
+              Staywell also uses browser storage for checkout session tokens and
+              your cookie choices; those values are not cookies and are not
+              advertising identifiers. The full-screen settings panel lets you
+              change optional category choices at any time using the Cookie
+              Settings link in the footer.
+            </p>
+            <p>
+              Your category choices are stored in this browser&apos;s local
+              storage under a versioned consent record for up to 180 days. The
+              record contains the preference categories and saved time, not your
+              name, booking reference, or payment details. A policy version
+              change or an expired/malformed record asks you to choose again.
+              Strictly necessary cookies are always enabled; optional categories
+              start disabled. Analytics and marketing scripts are not currently
+              integrated, and no optional tracking requests are made before or
+              after your choice.
+            </p>
+          </Section>
+
+          <Section
+            id="cookie-categories"
+            title="Cookies and similar technologies in use"
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-ink/10 bg-canvas p-4">
+                <h3 className="font-semibold text-forest">
+                  Strictly necessary
+                </h3>
+                <p className="mt-2 text-sm leading-6">
+                  The Staywell API sets <code>admin_session</code> (HttpOnly)
+                  and <code>admin_csrf</code> (readable by the admin page) for
+                  administrator sign-in and CSRF protection. Both use the{' '}
+                  <code>/api/v1/admin</code> path, SameSite Strict, Secure in
+                  production, and an eight-hour maximum age. They are not used
+                  for advertising. Customer booking does not set an
+                  authentication cookie.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-ink/10 bg-canvas p-4">
+                <h3 className="font-semibold text-forest">Functional</h3>
+                <p className="mt-2 text-sm leading-6">
+                  No functional cookies are currently set. This category remains
+                  off unless you choose it; Staywell does not currently have
+                  optional cookie-based preferences to enable.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-ink/10 bg-canvas p-4">
+                <h3 className="font-semibold text-forest">Analytics</h3>
+                <p className="mt-2 text-sm leading-6">
+                  No analytics provider, analytics cookie, or analytics script
+                  is integrated.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-ink/10 bg-canvas p-4">
+                <h3 className="font-semibold text-forest">Marketing</h3>
+                <p className="mt-2 text-sm leading-6">
+                  No advertising, marketing measurement, or cross-service
+                  tracking provider is integrated.
+                </p>
+              </div>
+            </div>
+            <p>
+              The cookie consent record itself is stored in browser local
+              storage for 180 days, not in a cookie. Checkout access and
+              idempotency tokens use session storage for the active booking
+              session. Neither storage mechanism is shared with analytics or
+              advertising services. If an optional provider is added later,
+              Staywell must update this notice and ensure its scripts are gated
+              by the corresponding saved preference before release.
             </p>
           </Section>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { SiteChrome } from '@/components/site/site-chrome';
+import { CookieConsentManager } from '@/components/site/cookie-consent-manager';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -28,9 +29,11 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <SiteChrome position="header" />
-        {children}
-        <SiteChrome position="footer" />
+        <CookieConsentManager>
+          <SiteChrome position="header" />
+          {children}
+          <SiteChrome position="footer" />
+        </CookieConsentManager>
       </body>
     </html>
   );

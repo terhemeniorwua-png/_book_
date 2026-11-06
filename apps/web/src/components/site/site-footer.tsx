@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ButtonLink } from './button-link';
 import { StaywellLogo } from './staywell-logo';
+import { CookieSettingsButton } from './cookie-consent-manager';
 
 const navigation = [
   { label: 'Home', href: '/#home' },
@@ -83,6 +84,7 @@ export function SiteFooter() {
             >
               Terms &amp; Conditions
             </Link>
+            <CookieSettingsButton className="rounded-sm underline decoration-white/25 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime" />
           </div>
         </div>
       </div>

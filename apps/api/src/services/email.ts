@@ -412,6 +412,7 @@ async function sendBookingConfirmation(
     cancellationUrl: link,
     termsUrl: `${appBaseUrl()}/terms-and-privacy#terms-and-conditions`,
     privacyUrl: `${appBaseUrl()}/terms-and-privacy#privacy-notice`,
+    cookieUrl: `${appBaseUrl()}/terms-and-privacy#cookie-policy`,
     supportEmail: env.SUPPORT_EMAIL_ADDRESS ?? null,
   });
   await sendAndRecord(

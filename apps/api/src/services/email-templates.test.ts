@@ -19,6 +19,7 @@ const input = {
   cancellationUrl: 'https://staywell.example/booking/cancel#token=secret-token',
   termsUrl: 'https://staywell.example/terms-and-privacy#terms-and-conditions',
   privacyUrl: 'https://staywell.example/terms-and-privacy#privacy-notice',
+  cookieUrl: 'https://staywell.example/terms-and-privacy#cookie-policy',
   supportEmail: 'support@staywell.example',
 };
 
@@ -49,9 +50,11 @@ describe('Staywell booking confirmation email template', () => {
     expect(email.html).toContain('support@staywell.example');
     expect(email.html).toContain(input.termsUrl);
     expect(email.html).toContain(input.privacyUrl);
+    expect(email.html).toContain(input.cookieUrl);
     expect(email.text).toContain(input.cancellationUrl);
     expect(email.text).toContain(input.termsUrl);
     expect(email.text).toContain(input.privacyUrl);
+    expect(email.text).toContain(input.cookieUrl);
     expect(email.text).toContain(
       'Payment status: Paid and verified by Paystack',
     );

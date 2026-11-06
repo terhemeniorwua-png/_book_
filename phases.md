@@ -120,6 +120,14 @@ Statuses: **Complete**, **Not started**, or **In progress**. A phase becomes com
 - [ ] Apply and verify the new migration and booking acceptance persistence against a disposable PostgreSQL database; run full browser and workspace checks.
 - [ ] Owner approves legal wording, supplies a verified customer/privacy contact route, approves the cancellation refund policy, and establishes a retention schedule before the documents are treated as final.
 
+## Phase 11A — Cookie preference experience — In progress
+
+- [x] Add an accessible, full-screen first-visit consent dialog with balanced Accept All and Reject Non-Essential choices, customization, necessary-only defaults, keyboard focus handling, and links to the policy page.
+- [x] Persist versioned preferences and timestamp in browser local storage for 180 days; add footer settings access and document the actual cookie/storage inventory.
+- [x] Confirm that no optional analytics or marketing integrations currently exist, so no optional tracking scripts or requests are loaded.
+- [ ] Run browser and workspace verification, including persistence, settings edits, legal links, mobile layout, and accessibility behavior.
+- [ ] Before adding an optional tracker, gate its code and requests on the matching consent category and verify opt-out stops tracking.
+
 ## Phase 1 outstanding manual configuration
 
 - Provide PostgreSQL connection settings and Paystack sandbox credentials in local ignored environment files before enabling those integrations.
