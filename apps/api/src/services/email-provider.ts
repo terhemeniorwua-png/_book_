@@ -47,11 +47,11 @@ export async function deliverEmail(
       const response = await fetcher(configuration.apiUrl, {
         method: 'POST',
         signal: AbortSignal.timeout(10_000),
-        headers: {
-          authorization: `Bearer ${configuration.apiKey}`,
-          'content-type': 'application/json',
-          'Idempotency-Key': message.idempotencyKey,
-        },
+       headers: {
+  'api-key': configuration.apiKey,
+  'content-type': 'application/json',
+  accept: 'application/json',
+},
         body: JSON.stringify({
           from: configuration.fromAddress,
           to: [message.to],
