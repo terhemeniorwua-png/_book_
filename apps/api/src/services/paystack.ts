@@ -1,3 +1,4 @@
+import { guestDetailsComplete } from './guest-details.js';
 import {
   createHash,
   createHmac,
@@ -290,6 +291,12 @@ export async function initializePayment(
           410,
           'BOOKING_HOLD_EXPIRED',
           'This reservation hold has expired. Start again to check availability.',
+        );
+      if (!guestDetailsComplete(bookingData))
+        throw new PaymentError(
+          409,
+          'GUEST_DETAILS_REQUIRED',
+          'Add your phone number and accept the terms before paying.',
         );
       const currency = String(bookingData.currency).toUpperCase();
       if (currency !== env.PAYSTACK_CURRENCY || currency !== 'NGN')

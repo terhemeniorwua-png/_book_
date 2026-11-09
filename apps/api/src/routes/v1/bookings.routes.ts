@@ -6,6 +6,8 @@ import {
   createBooking,
   createBookingBodySchema,
   getBookingCheckout,
+  guestDetailsBodySchema,
+  saveGuestDetails,
   validateBookingAccessHeader,
   validateBookingAttemptHeaders,
 } from '../../services/booking-checkout.js';
@@ -79,6 +81,29 @@ bookingsRouter.get(
         });
         return;
       }
+      next(error);
+    }
+  },
+);
+
+bookingsRouter.post(
+  '/:bookingReference/guest-details',
+  validateRequest({
+    params: bookingReferenceParamsSchema,
+    body: guestDetailsBodySchema,
+  }),
+  async (request, response, next) => {
+    try {
+      const accessToken = validateBookingAccessHeader(
+        request.get('Authorization'),
+      );
+      await saveGuestDetails(
+        String(request.params.bookingReference),
+        accessToken,
+        request.body as Parameters<typeof saveGuestDetails>[2],
+      );
+      response.json({ item: { guestDetailsComplete: true } });
+    } catch (error) {
       next(error);
     }
   },

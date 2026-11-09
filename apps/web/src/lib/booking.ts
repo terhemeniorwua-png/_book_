@@ -146,6 +146,7 @@ const checkoutSchema = z.object({
     imageAlt: z.string().nullable(),
   }),
   paymentTerms: z.string(),
+  guestDetailsComplete: z.boolean().default(true),
 });
 
 export const paymentInitializationSchema = z.object({

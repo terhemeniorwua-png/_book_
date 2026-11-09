@@ -12,6 +12,7 @@ import {
   Guest,
 } from '../db/models/index.js';
 import { signApartmentImage } from './apartment-catalog.js';
+import { guestDetailsComplete } from './guest-details.js';
 import {
   isValidTimeZone,
   normalizeCheckInTime,
@@ -40,12 +41,13 @@ type BookingInput = {
   guestCount: number;
   fullName: string;
   email: string;
-  phone: string;
+  phone?: string;
   specialRequests?: string;
-  acceptedTerms: true;
-  acceptedTermsVersion: typeof TERMS_VERSION;
-  acceptedPrivacyNotice: true;
-  privacyNoticeVersion: typeof PRIVACY_NOTICE_VERSION;
+  acceptedTerms?: true;
+  acceptedTermsVersion?: typeof TERMS_VERSION;
+  acceptedPrivacyNotice?: true;
+  privacyNoticeVersion?: typeof PRIVACY_NOTICE_VERSION;
+  deferGuestDetails?: boolean;
 };
 
 type Attempt = { idempotencyKey: string; accessToken: string };
@@ -330,6 +332,7 @@ function fingerprint(input: BookingInput) {
       acceptedTermsVersion: input.acceptedTermsVersion,
       acceptedPrivacyNotice: input.acceptedPrivacyNotice,
       privacyNoticeVersion: input.privacyNoticeVersion,
+      ...(input.deferGuestDetails === true ? { deferGuestDetails: true } : {}),
     }),
   );
 }
@@ -456,15 +459,8 @@ async function resultForExisting(
   return { ...safeBookingResult(booking), accessToken, replayed: true };
 }
 
-export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
-  const input = {
-    ...rawInput,
-    email: rawInput.email.trim().toLowerCase(),
-    fullName: rawInput.fullName.trim().replace(/\s+/g, ' '),
-    phone: rawInput.phone.trim(),
-    specialRequests: rawInput.specialRequests?.trim() || undefined,
-  };
-  const digits = parsePhoneNumberFromString(input.phone, 'NG');
+function normalizePhone(raw: string) {
+  const digits = parsePhoneNumberFromString(raw.trim(), 'NG');
   if (!digits?.isValid()) {
     throw new BookingFlowError(
       'Enter a valid phone number, including its country code when needed.',
@@ -472,7 +468,18 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
       'INVALID_PHONE',
     );
   }
-  input.phone = digits.number;
+  return digits.number;
+}
+
+export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
+  const deferred = rawInput.deferGuestDetails === true;
+  const input = {
+    ...rawInput,
+    email: rawInput.email.trim().toLowerCase(),
+    fullName: rawInput.fullName.trim().replace(/\s+/g, ' '),
+    phone: deferred ? undefined : normalizePhone(rawInput.phone ?? ''),
+    specialRequests: rawInput.specialRequests?.trim() || undefined,
+  };
   const requestFingerprint = fingerprint(input);
   const idempotencyKeyHash = sha256(attempt.idempotencyKey);
   const accessTokenHash = sha256(attempt.accessToken);
@@ -548,7 +555,7 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
           firstName,
           lastName: lastParts.join(' ') || firstName,
           email: input.email,
-          phone: input.phone,
+          phone: input.phone ?? null,
         },
         { transaction },
       );
@@ -570,10 +577,10 @@ export async function createBooking(rawInput: BookingInput, attempt: Attempt) {
           accessTokenHash,
           requestFingerprint,
           specialRequests: input.specialRequests ?? null,
-          termsAcceptedAt: new Date(),
-          termsVersion: input.acceptedTermsVersion,
-          privacyNoticeAcknowledgedAt: new Date(),
-          privacyNoticeVersion: input.privacyNoticeVersion,
+          termsAcceptedAt: deferred ? null : new Date(),
+          termsVersion: deferred ? null : input.acceptedTermsVersion,
+          privacyNoticeAcknowledgedAt: deferred ? null : new Date(),
+          privacyNoticeVersion: deferred ? null : input.privacyNoticeVersion,
           acceptedPolicySnapshot: {
             checkInPolicy: property.checkInPolicy,
             checkOutPolicy: property.checkOutPolicy,
@@ -638,6 +645,7 @@ export async function getBookingCheckout(
           'cancellationPolicy',
         ],
       },
+      { model: Guest, as: 'guest', attributes: ['phone'] },
     ],
   });
   const value = booking?.get({ plain: true }) as
@@ -658,6 +666,7 @@ export async function getBookingCheckout(
     | undefined;
   return {
     ...safeBookingResult(booking),
+    guestDetailsComplete: guestDetailsComplete(value),
     apartment: {
       id: apartment.id,
       name: apartment.name,
@@ -685,6 +694,13 @@ const dateOnly = Joi.string()
     return value;
   });
 
+const whenDeferred = (schema: Joi.Schema) =>
+  Joi.when('deferGuestDetails', {
+    is: Joi.valid(true).required(),
+    then: Joi.forbidden(),
+    otherwise: schema.required(),
+  });
+
 export const createBookingBodySchema = Joi.object({
   apartmentId: Joi.string()
     .guid({ version: ['uuidv4', 'uuidv1', 'uuidv5'] })
@@ -704,12 +720,15 @@ export const createBookingBodySchema = Joi.object({
     .email({ tlds: { allow: false } })
     .max(320)
     .required(),
-  phone: Joi.string().trim().min(7).max(32).required(),
+  deferGuestDetails: Joi.boolean().optional(),
+  phone: whenDeferred(Joi.string().trim().min(7).max(32)),
   specialRequests: Joi.string().trim().max(500).allow('', null),
-  acceptedTerms: Joi.boolean().valid(true).required(),
-  acceptedTermsVersion: Joi.string().valid(TERMS_VERSION).required(),
-  acceptedPrivacyNotice: Joi.boolean().valid(true).required(),
-  privacyNoticeVersion: Joi.string().valid(PRIVACY_NOTICE_VERSION).required(),
+  acceptedTerms: whenDeferred(Joi.boolean().valid(true)),
+  acceptedTermsVersion: whenDeferred(Joi.string().valid(TERMS_VERSION)),
+  acceptedPrivacyNotice: whenDeferred(Joi.boolean().valid(true)),
+  privacyNoticeVersion: whenDeferred(
+    Joi.string().valid(PRIVACY_NOTICE_VERSION),
+  ),
 }).unknown(false);
 
 export const bookingReferenceParamsSchema = Joi.object({
@@ -784,4 +803,65 @@ export function validateBookingAccessHeader(authorization: string | undefined) {
     );
   }
   return tokenMatch[1]!;
+}
+
+export const guestDetailsBodySchema = Joi.object({
+  phone: Joi.string().trim().min(7).max(32).required(),
+  acceptedTerms: Joi.boolean().valid(true).required(),
+  acceptedTermsVersion: Joi.string().valid(TERMS_VERSION).required(),
+  acceptedPrivacyNotice: Joi.boolean().valid(true).required(),
+  privacyNoticeVersion: Joi.string().valid(PRIVACY_NOTICE_VERSION).required(),
+}).unknown(false);
+
+export async function saveGuestDetails(
+  bookingReference: string,
+  accessToken: string,
+  input: {
+    phone: string;
+    acceptedTermsVersion: typeof TERMS_VERSION;
+    privacyNoticeVersion: typeof PRIVACY_NOTICE_VERSION;
+  },
+) {
+  const phone = normalizePhone(input.phone);
+  await sequelize.transaction(async (transaction) => {
+    const booking = await Booking.findOne({
+      where: { bookingReference },
+      include: [{ model: Guest, as: 'guest' }],
+      transaction,
+      lock: { level: transaction.LOCK.UPDATE, of: Booking },
+    });
+    const value = booking?.get({ plain: true }) as
+      | Record<string, unknown>
+      | undefined;
+    if (!booking || !value || !isTokenMatch(value.accessTokenHash, accessToken))
+      throw new BookingFlowError(
+        'Booking could not be found',
+        404,
+        'BOOKING_NOT_FOUND',
+      );
+    if (
+      value.status !== 'pending' ||
+      !value.expiresAt ||
+      Date.parse(String(value.expiresAt)) <= Date.now()
+    )
+      throw new BookingFlowError(
+        'This booking hold has expired',
+        410,
+        'BOOKING_EXPIRED',
+      );
+    if (guestDetailsComplete(value)) return;
+    await Guest.update(
+      { phone },
+      { where: { id: value.guestId as string }, transaction },
+    );
+    await booking.update(
+      {
+        termsAcceptedAt: new Date(),
+        termsVersion: input.acceptedTermsVersion,
+        privacyNoticeAcknowledgedAt: new Date(),
+        privacyNoticeVersion: input.privacyNoticeVersion,
+      },
+      { transaction },
+    );
+  });
 }

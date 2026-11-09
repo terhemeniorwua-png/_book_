@@ -11,6 +11,7 @@ import {
 } from '@/lib/booking';
 import { ApartmentPhoto } from '@/components/site/apartment-photo';
 import { BookingProgress } from './booking-progress';
+import { CheckoutGuestDetails } from './checkout-guest-details';
 
 type CheckoutState =
   | { status: 'loading' }
@@ -228,6 +229,21 @@ export function CheckoutSummary({
 
         <div className="mt-8 grid gap-7 lg:grid-cols-[1fr_360px]">
           <section className="space-y-6">
+            {item.guestDetailsComplete ? null : (
+              <CheckoutGuestDetails
+                bookingReference={bookingReference}
+                onSaved={() =>
+                  setState((current) =>
+                    current.status === 'ready'
+                      ? {
+                          status: 'ready',
+                          item: { ...current.item, guestDetailsComplete: true },
+                        }
+                      : current,
+                  )
+                }
+              />
+            )}
             <article className="overflow-hidden rounded-3xl border border-ink/10 bg-white shadow-sm sm:flex">
               <div className="relative aspect-[4/3] bg-sand sm:aspect-auto sm:min-h-52 sm:w-64 sm:shrink-0">
                 <ApartmentPhoto
@@ -386,7 +402,7 @@ export function CheckoutSummary({
             <button
               type="button"
               onClick={() => void beginPayment()}
-              disabled={paymentLoading}
+              disabled={paymentLoading || !item.guestDetailsComplete}
               className="min-h-12 w-full rounded-xl bg-forest px-6 py-3 text-sm font-semibold text-white transition hover:bg-forest-dark focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest disabled:cursor-wait disabled:opacity-60"
             >
               {paymentLoading

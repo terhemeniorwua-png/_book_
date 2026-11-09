@@ -158,6 +158,70 @@ export function BookingForm({
     }
   }
 
+  async function continueWithGoogle(profile: GoogleProfile) {
+    setRequestError('');
+    setErrors({});
+    setSubmitting(true);
+    const email = profile.email.trim().toLowerCase();
+    const attemptKey = `staywell:attempt-google:${apartmentId}:${checkIn}:${checkOut}:${guestCount}:${email}`;
+    try {
+      const stored = sessionStorage.getItem(attemptKey);
+      const attempt: { idempotencyKey: string; accessToken: string } = stored
+        ? JSON.parse(stored)
+        : {
+            idempotencyKey: createSecretHex(),
+            accessToken: createSecretHex(),
+          };
+      sessionStorage.setItem(attemptKey, JSON.stringify(attempt));
+      const response = await fetch(`${getApiBaseUrl()}/bookings`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'Idempotency-Key': attempt.idempotencyKey,
+          authorization: `Bearer ${attempt.accessToken}`,
+        },
+        body: JSON.stringify({
+          apartmentId,
+          checkIn,
+          checkOut,
+          guestCount: Number(guestCount),
+          fullName: profile.fullName.trim(),
+          email,
+          deferGuestDetails: true,
+        }),
+      });
+      const body: unknown = await response.json();
+      const result = parseBookingCreation(body);
+      if (!response.ok || !result.success) {
+        const errorBody =
+          body && typeof body === 'object'
+            ? (body as { error?: { message?: string } }).error
+            : undefined;
+        setGoogleProfile(profile);
+        setRequestError(
+          errorBody?.message ??
+            'We could not save this booking. Check your details and try again.',
+        );
+        return;
+      }
+      sessionStorage.setItem(
+        `staywell:booking-token:${result.data.bookingReference}`,
+        result.data.accessToken,
+      );
+      router.push(
+        `/checkout/${encodeURIComponent(result.data.bookingReference)}`,
+      );
+    } catch {
+      setGoogleProfile(profile);
+      setRequestError(
+        'We could not reach the booking service. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <main id="main-content" className="section-wrap min-h-[70vh]">
       <BookingProgress current={step === 'dates' ? 1 : 2} />
@@ -206,12 +270,19 @@ export function BookingForm({
               </div>
               {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
                 <div className="mt-6 grid gap-2">
-                  <GoogleContinueButton onProfile={setGoogleProfile} />
+                  <GoogleContinueButton
+                    onProfile={(profile) => void continueWithGoogle(profile)}
+                  />
                   <p className="text-xs text-muted">
                     {googleProfile
                       ? `Details filled in from Google (${googleProfile.email}). Add your phone number below.`
                       : 'Or enter your details below.'}
                   </p>
+                  {submitting ? (
+                    <p role="status" className="text-xs text-muted">
+                      Preparing your checkout…
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
               <form
