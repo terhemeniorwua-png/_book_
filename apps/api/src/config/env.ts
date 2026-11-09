@@ -97,6 +97,10 @@ const schema = Joi.object({
     .email({ tlds: { allow: false } })
     .max(320)
     .optional(),
+  GOOGLE_CLIENT_ID: Joi.string()
+    .empty('')
+    .pattern(/^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/)
+    .optional(),
   S3_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .optional(),
@@ -134,6 +138,7 @@ export type AppEnvironment = {
   EMAIL_PROVIDER_API_KEY?: string;
   EMAIL_FROM_ADDRESS?: string;
   SUPPORT_EMAIL_ADDRESS?: string;
+  GOOGLE_CLIENT_ID?: string;
   S3_ENDPOINT?: string;
   S3_REGION?: string;
   S3_BUCKET?: string;
@@ -161,7 +166,7 @@ export function validateEnvironment(
     value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY,
   );
   if (hasPaystackKey) {
-    const mode = value.NODE_ENV === 'production' ? 'test' : 'test';
+    const mode = value.NODE_ENV === 'production' ? 'live' : 'test';
     if (
       (value.PAYSTACK_SECRET_KEY &&
         !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`)) ||
