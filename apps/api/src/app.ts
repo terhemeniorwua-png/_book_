@@ -286,6 +286,10 @@ export function createApp(
     '/api/v1/admin/auth/login',
     loginLimiter(configuration, rateLimitStoreFactory),
   );
+  application.use(
+    '/api/v1/auth/google',
+    loginLimiter(configuration, rateLimitStoreFactory),
+  );
   application.get('/health', (_request, response) =>
     response.json({ status: 'ok' }),
   );

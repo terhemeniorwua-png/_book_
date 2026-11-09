@@ -14,6 +14,10 @@ import {
 import { ApartmentPhoto } from '@/components/site/apartment-photo';
 import { BookingProgress } from './booking-progress';
 import { StayDateSelector, type StaySelection } from './stay-date-selector';
+import {
+  GoogleContinueButton,
+  type GoogleProfile,
+} from './google-continue-button';
 
 type FieldErrors = Record<string, string>;
 
@@ -40,6 +44,9 @@ export function BookingForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [requestError, setRequestError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleProfile, setGoogleProfile] = useState<GoogleProfile | null>(
+    null,
+  );
 
   const updateSelection = useCallback((selection: StaySelection) => {
     setCheckIn(selection.checkIn);
@@ -197,6 +204,16 @@ export function BookingForm({
                   Change
                 </button>
               </div>
+              {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+                <div className="mt-6 grid gap-2">
+                  <GoogleContinueButton onProfile={setGoogleProfile} />
+                  <p className="text-xs text-muted">
+                    {googleProfile
+                      ? `Details filled in from Google (${googleProfile.email}). Add your phone number below.`
+                      : 'Or enter your details below.'}
+                  </p>
+                </div>
+              ) : null}
               <form
                 onSubmit={submitGuestInformation}
                 className="mt-6 grid gap-5"
@@ -207,6 +224,8 @@ export function BookingForm({
                     required
                     name="fullName"
                     autoComplete="name"
+                    key={googleProfile?.fullName ?? 'manual-name'}
+                    defaultValue={googleProfile?.fullName ?? ''}
                     maxLength={160}
                     aria-invalid={Boolean(errors.fullName)}
                     aria-describedby={
@@ -231,6 +250,8 @@ export function BookingForm({
                       name="email"
                       type="email"
                       autoComplete="email"
+                      key={googleProfile?.email ?? 'manual-email'}
+                      defaultValue={googleProfile?.email ?? ''}
                       maxLength={320}
                       aria-invalid={Boolean(errors.email)}
                       aria-describedby={
