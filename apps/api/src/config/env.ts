@@ -65,6 +65,7 @@ const schema = Joi.object({
     .pattern(/^pk_(test|live)_[A-Za-z0-9_-]+$/)
     .optional(),
   PAYSTACK_CURRENCY: Joi.string().valid('NGN').default('NGN'),
+  PAYSTACK_ALLOW_TEST_KEYS: Joi.boolean().default(false),
   PAYSTACK_CALLBACK_URL: Joi.string()
     .empty('')
     .uri({ scheme: ['http', 'https'] })
@@ -130,6 +131,7 @@ export type AppEnvironment = {
   PAYSTACK_SECRET_KEY?: string;
   PAYSTACK_PUBLIC_KEY?: string;
   PAYSTACK_CURRENCY: 'NGN';
+  PAYSTACK_ALLOW_TEST_KEYS: boolean;
   PAYSTACK_CALLBACK_URL?: string;
   PAYSTACK_WEBHOOK_URL?: string;
   PAYMENT_RECONCILIATION_AGE_MINUTES: number;
@@ -166,7 +168,10 @@ export function validateEnvironment(
     value.PAYSTACK_SECRET_KEY || value.PAYSTACK_PUBLIC_KEY,
   );
   if (hasPaystackKey) {
-    const mode = value.NODE_ENV === 'production' ? 'live' : 'test';
+    const mode =
+      value.NODE_ENV === 'production' && !value.PAYSTACK_ALLOW_TEST_KEYS
+        ? 'live'
+        : 'test';
     if (
       (value.PAYSTACK_SECRET_KEY &&
         !String(value.PAYSTACK_SECRET_KEY).startsWith(`sk_${mode}_`)) ||
