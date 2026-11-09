@@ -487,6 +487,7 @@ describe.skipIf(!enabled)('PostgreSQL schema and inventory integrity', () => {
         houseRules: [],
         timeZone: 'Africa/Lagos',
         checkInTime: '14:00',
+        checkOutTime: null,
       });
 
       const reference = created.body.bookingReference as string;
